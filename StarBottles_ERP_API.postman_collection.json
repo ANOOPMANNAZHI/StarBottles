@@ -1,0 +1,218 @@
+{
+  "info": {
+    "name": "StarBottles — Sabco ERP API",
+    "description": "Direct Frappe/Sabco ERP API calls for item groups (categories) and items (products).\n\nSetup:\n1. Set `erp_base_url` — e.g. https://erp.sabco.in\n2. Set `erp_api_key` and `erp_api_secret` — from ERP user token\n3. Auth header format: `token key:secret` (NOT Bearer)\n\nPagination:\n- Use `limit_start` + `limit_page_length` to page through results\n- Check `message.total_count` in response to know total records",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "erp_base_url",
+      "value": "https://sabco.frappe.cloud",
+      "type": "string"
+    },
+    {
+      "key": "erp_api_key",
+      "value": "39cde5f3f0743ce",
+      "type": "string"
+    },
+    {
+      "key": "erp_api_secret",
+      "value": "f845e01b7b62c62",
+      "type": "string"
+    },
+    {
+      "key": "company",
+      "value": "Star Bottles",
+      "type": "string"
+    },
+    {
+      "key": "page_size",
+      "value": "100",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      {
+        "key": "key",
+        "value": "Authorization",
+        "type": "string"
+      },
+      {
+        "key": "value",
+        "value": "token {{erp_api_key}}:{{erp_api_secret}}",
+        "type": "string"
+      },
+      {
+        "key": "in",
+        "value": "header",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Item Groups (Categories)",
+      "item": [
+        {
+          "name": "Get Item Groups — Page 1",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "var data = json.message?.data ?? [];",
+                  "var total = json.message?.total_count ?? 0;",
+                  "",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has message.data array', () => pm.expect(data).to.be.an('array'));",
+                  "pm.test('Has total_count', () => pm.expect(total).to.be.a('number'));",
+                  "",
+                  "console.log('Item groups received:', data.length, '/ total:', total);",
+                  "console.log('Groups:', data);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{erp_base_url}}/api/method/sabco.website.api.items.get_item_groups?company={{company}}&limit_start=0&limit_page_length={{page_size}}",
+              "host": ["{{erp_base_url}}"],
+              "path": ["api", "method", "sabco.website.api.items.get_item_groups"],
+              "query": [
+                { "key": "company", "value": "{{company}}" },
+                { "key": "limit_start", "value": "0" },
+                { "key": "limit_page_length", "value": "{{page_size}}" }
+              ]
+            },
+            "description": "Fetch first page of item groups.\n\nExpected response:\n```json\n{\n  \"message\": {\n    \"data\": [\"PET Bottles\", \"Glass Jars\", ...],\n    \"total_count\": 12\n  }\n}\n```"
+          }
+        },
+        {
+          "name": "Get Item Groups — Page 2",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{erp_base_url}}/api/method/sabco.website.api.items.get_item_groups?company={{company}}&limit_start=100&limit_page_length={{page_size}}",
+              "host": ["{{erp_base_url}}"],
+              "path": ["api", "method", "sabco.website.api.items.get_item_groups"],
+              "query": [
+                { "key": "company", "value": "{{company}}" },
+                { "key": "limit_start", "value": "100" },
+                { "key": "limit_page_length", "value": "{{page_size}}" }
+              ]
+            },
+            "description": "Fetch second page (offset 100). Use when total_count > 100."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Items (Products)",
+      "item": [
+        {
+          "name": "Get Items — Page 1",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "var data = json.message?.data ?? [];",
+                  "var total = json.message?.total_count ?? 0;",
+                  "",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has message.data array', () => pm.expect(data).to.be.an('array'));",
+                  "pm.test('Has total_count', () => pm.expect(total).to.be.a('number'));",
+                  "",
+                  "// Check first item has expected fields",
+                  "if (data.length > 0) {",
+                  "  var item = data[0];",
+                  "  pm.test('Item has item_code', () => pm.expect(item).to.have.property('item_code'));",
+                  "  pm.test('Item has item_name', () => pm.expect(item).to.have.property('item_name'));",
+                  "  pm.test('Item has item_group', () => pm.expect(item).to.have.property('item_group'));",
+                  "}",
+                  "",
+                  "console.log('Items received:', data.length, '/ total:', total);",
+                  "",
+                  "// Log field keys present in first item",
+                  "if (data.length > 0) {",
+                  "  console.log('Fields in first item:', Object.keys(data[0]));",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{erp_base_url}}/api/method/sabco.website.api.items.get_items?company={{company}}&limit_start=0&limit_page_length={{page_size}}",
+              "host": ["{{erp_base_url}}"],
+              "path": ["api", "method", "sabco.website.api.items.get_items"],
+              "query": [
+                { "key": "company", "value": "{{company}}" },
+                { "key": "limit_start", "value": "0" },
+                { "key": "limit_page_length", "value": "{{page_size}}" }
+              ]
+            },
+            "description": "Fetch first page of items (products).\n\nExpected response:\n```json\n{\n  \"message\": {\n    \"data\": [\n      {\n        \"item_code\": \"ERP-001\",\n        \"item_name\": \"PET Boston Round 500ml\",\n        \"description\": \"...\",\n        \"item_group\": \"PET Bottles\",\n        \"brand\": \"Star Bottles\",\n        \"stock_uom\": \"Nos\",\n        \"classification\": \"A\",\n        \"image\": null,\n        \"neck_size\": null,\n        \"shape\": null,\n        \"moc\": null,\n        \"custom_volume\": null,\n        \"color\": null,\n        \"weight\": null,\n        \"total_height\": null,\n        \"box_quantity\": null,\n        \"label_area\": null\n      }\n    ],\n    \"total_count\": 250\n  }\n}\n```"
+          }
+        },
+        {
+          "name": "Get Items — Page 2",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{erp_base_url}}/api/method/sabco.website.api.items.get_items?company={{company}}&limit_start=100&limit_page_length={{page_size}}",
+              "host": ["{{erp_base_url}}"],
+              "path": ["api", "method", "sabco.website.api.items.get_items"],
+              "query": [
+                { "key": "company", "value": "{{company}}" },
+                { "key": "limit_start", "value": "100" },
+                { "key": "limit_page_length", "value": "{{page_size}}" }
+              ]
+            },
+            "description": "Fetch second page (offset 100)."
+          }
+        },
+        {
+          "name": "Get Items — Page 3",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{erp_base_url}}/api/method/sabco.website.api.items.get_items?company={{company}}&limit_start=200&limit_page_length={{page_size}}",
+              "host": ["{{erp_base_url}}"],
+              "path": ["api", "method", "sabco.website.api.items.get_items"],
+              "query": [
+                { "key": "company", "value": "{{company}}" },
+                { "key": "limit_start", "value": "200" },
+                { "key": "limit_page_length", "value": "{{page_size}}" }
+              ]
+            },
+            "description": "Fetch third page (offset 200)."
+          }
+        }
+      ]
+    }
+  ]
+}

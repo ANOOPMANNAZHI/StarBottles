@@ -1,0 +1,80 @@
+# ============================================================
+# Root — covers all sub-projects
+# ============================================================
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor / IDE
+/.idea
+/.vscode
+/.zed
+/.nova
+/.fleet
+
+# ============================================================
+# Laravel (starbottles-backend)
+# ============================================================
+starbottles-backend/.env
+starbottles-backend/.env.backup
+starbottles-backend/.env.production
+starbottles-backend/auth.json
+starbottles-backend/vendor/
+starbottles-backend/node_modules/
+starbottles-backend/public/build/
+starbottles-backend/public/hot
+starbottles-backend/public/storage
+starbottles-backend/storage/*.key
+starbottles-backend/storage/pail/
+starbottles-backend/.phpunit.result.cache
+starbottles-backend/.phpunit.cache/
+starbottles-backend/*.log
+starbottles-backend/Homestead.json
+starbottles-backend/Homestead.yaml
+starbottles-backend/.phpactor.json
+
+# ============================================================
+# Next.js (starbottles-frontend & starbottles-b2b)
+# ============================================================
+starbottles-frontend/.env
+starbottles-frontend/.env.*
+starbottles-frontend/node_modules/
+starbottles-frontend/.next/
+starbottles-frontend/out/
+starbottles-frontend/build/
+starbottles-frontend/*.tsbuildinfo
+starbottles-frontend/next-env.d.ts
+starbottles-frontend/.vercel
+starbottles-frontend/coverage/
+starbottles-frontend/.pnp.*
+
+starbottles-b2b/.env
+starbottles-b2b/.env.*
+starbottles-b2b/node_modules/
+starbottles-b2b/.next/
+starbottles-b2b/out/
+starbottles-b2b/build/
+starbottles-b2b/*.tsbuildinfo
+starbottles-b2b/next-env.d.ts
+starbottles-b2b/.vercel
+starbottles-b2b/coverage/
+starbottles-b2b/.pnp.*
+
+# ============================================================
+# Root node_modules (if any)
+# ============================================================
+/node_modules/
+/package-lock.json
+
+# Claude Code memory
+.claude/
+
+# ============================================================
+# Misc
+# ============================================================
+*.pem
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*

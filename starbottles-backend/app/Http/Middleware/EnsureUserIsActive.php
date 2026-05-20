@@ -1,0 +1,28 @@
+<?php
+
+namespace App\Http\Middleware;
+
+use Closure;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
+
+class EnsureUserIsActive
+{
+    public function handle(Request $request, Closure $next): Response
+    {
+        $user = $request->user();
+
+        if ($user && ! $user->is_active) {
+            // Revoke the current token so it cannot be reused
+            $request->user()->currentAccessToken()->delete();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Your account has been deactivated.',
+                'errors'  => [],
+            ], 401);
+        }
+
+        return $next($request);
+    }
+}

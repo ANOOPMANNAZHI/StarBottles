@@ -1,0 +1,437 @@
+{
+  "info": {
+    "name": "StarBottles — Sync Categories & Products",
+    "description": "API collection for ERP sync and product/category management.\n\nSetup:\n1. Set `base_url` variable (default: http://localhost:8000/api/v1)\n2. Run **Login** — token is saved automatically\n3. All authenticated requests use Bearer {{token}}",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "category_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "product_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "image_index",
+      "value": "0",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "1. Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.token) {",
+                  "    pm.collectionVariables.set('token', json.token);",
+                  "    console.log('Token saved:', json.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@starbottles.in\",\n  \"password\": \"password\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Login and auto-save bearer token to collection variable."
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. ERP Sync",
+      "description": "Requires permission: erp-sync (admin role)",
+      "item": [
+        {
+          "name": "Get Sync Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/erp/sync-status",
+              "host": ["{{base_url}}"],
+              "path": ["erp", "sync-status"]
+            },
+            "description": "Returns last 10 sync logs, total product count, total category count, and last sync info."
+          }
+        },
+        {
+          "name": "Get Sync Progress",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/erp/sync-progress",
+              "host": ["{{base_url}}"],
+              "path": ["erp", "sync-progress"]
+            },
+            "description": "Poll this endpoint while a sync is running. Returns: status, stage, current, total, cats_done."
+          }
+        },
+        {
+          "name": "Trigger Categories Sync",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/erp/sync-categories",
+              "host": ["{{base_url}}"],
+              "path": ["erp", "sync-categories"]
+            },
+            "description": "Queues SyncErpCategoriesJob. Returns 202 Accepted. Poll /erp/sync-progress to track."
+          }
+        },
+        {
+          "name": "Trigger Products Sync",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/erp/sync",
+              "host": ["{{base_url}}"],
+              "path": ["erp", "sync"]
+            },
+            "description": "Queues SyncErpProductsJob. Returns 202 Accepted. Poll /erp/sync-progress to track."
+          }
+        },
+        {
+          "name": "Get ERP Settings",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/erp/settings",
+              "host": ["{{base_url}}"],
+              "path": ["erp", "settings"]
+            },
+            "description": "Returns all ERP settings (erp_api_url, erp_api_key, etc.). Secret field is masked."
+          }
+        },
+        {
+          "name": "Update ERP Settings",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"settings\": [\n    {\n      \"key\": \"erp_api_url\",\n      \"value\": \"https://erp.example.com\"\n    },\n    {\n      \"key\": \"erp_api_key\",\n      \"value\": \"your-api-key\"\n    },\n    {\n      \"key\": \"erp_api_secret\",\n      \"value\": \"your-api-secret\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/erp/settings",
+              "host": ["{{base_url}}"],
+              "path": ["erp", "settings"]
+            },
+            "description": "Update ERP connection settings. Leave erp_api_secret value empty to keep existing secret unchanged."
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Admin — Product Categories",
+      "description": "Requires permission: products (admin role). Use to verify categories after sync.",
+      "item": [
+        {
+          "name": "List All Categories",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/product-categories",
+              "host": ["{{base_url}}"],
+              "path": ["product-categories"]
+            },
+            "description": "Returns all categories with product count. Copy an id into the {{category_id}} variable."
+          }
+        },
+        {
+          "name": "Toggle Category Featured",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/product-categories/{{category_id}}/feature",
+              "host": ["{{base_url}}"],
+              "path": ["product-categories", "{{category_id}}", "feature"]
+            },
+            "description": "Toggles is_featured on a category. Clears category cache."
+          }
+        },
+        {
+          "name": "Delete Category",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/product-categories/{{category_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["product-categories", "{{category_id}}"]
+            },
+            "description": "Deletes a category. Associated products have their category_id set to null (not deleted)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Admin — Products",
+      "description": "Requires permission: products (admin role). Use to verify products after sync.",
+      "item": [
+        {
+          "name": "List Products (Admin — include hidden)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/products?include_hidden=true&per_page=20",
+              "host": ["{{base_url}}"],
+              "path": ["products"],
+              "query": [
+                { "key": "include_hidden", "value": "true", "description": "Admin only — also return hidden products" },
+                { "key": "per_page", "value": "20" },
+                { "key": "search", "value": "", "disabled": true },
+                { "key": "category_id", "value": "", "disabled": true },
+                { "key": "material", "value": "", "disabled": true },
+                { "key": "capacity", "value": "", "disabled": true },
+                { "key": "shape_type", "value": "", "disabled": true },
+                { "key": "brand", "value": "", "disabled": true },
+                { "key": "classification", "value": "", "disabled": true },
+                { "key": "featured", "value": "true", "disabled": true }
+              ]
+            },
+            "description": "Paginated product list. Admin can pass include_hidden=true to see hidden products."
+          }
+        },
+        {
+          "name": "Toggle Product Hidden",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/products/{{product_id}}/hide",
+              "host": ["{{base_url}}"],
+              "path": ["products", "{{product_id}}", "hide"]
+            },
+            "description": "Toggles is_hidden on a product."
+          }
+        },
+        {
+          "name": "Toggle Product Featured",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/products/{{product_id}}/feature",
+              "host": ["{{base_url}}"],
+              "path": ["products", "{{product_id}}", "feature"]
+            },
+            "description": "Toggles is_featured on a product."
+          }
+        },
+        {
+          "name": "List Product Images",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/products/{{product_id}}/images",
+              "host": ["{{base_url}}"],
+              "path": ["products", "{{product_id}}", "images"]
+            },
+            "description": "Returns all image URLs for a product."
+          }
+        },
+        {
+          "name": "Upload Product Image",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "image",
+                  "type": "file",
+                  "description": "Image file (jpg/png)"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/products/{{product_id}}/images",
+              "host": ["{{base_url}}"],
+              "path": ["products", "{{product_id}}", "images"]
+            },
+            "description": "Upload an image for a product. Send as multipart/form-data with key 'image'."
+          }
+        },
+        {
+          "name": "Delete Product Image",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/products/{{product_id}}/images/{{image_index}}",
+              "host": ["{{base_url}}"],
+              "path": ["products", "{{product_id}}", "images", "{{image_index}}"]
+            },
+            "description": "Delete a product image by its 0-based index in the images array."
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Public — Verify (no auth)",
+      "description": "Public endpoints to verify synced data is visible on the storefront.",
+      "item": [
+        {
+          "name": "Get Category Tree",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/products/categories",
+              "host": ["{{base_url}}"],
+              "path": ["products", "categories"]
+            },
+            "description": "Returns full category tree with children and product counts. Cached 1h."
+          }
+        },
+        {
+          "name": "Get Featured Categories",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/products/categories/featured",
+              "host": ["{{base_url}}"],
+              "path": ["products", "categories", "featured"]
+            },
+            "description": "Returns only featured root categories. Cached 1h."
+          }
+        },
+        {
+          "name": "List Products (Public)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/products?per_page=20",
+              "host": ["{{base_url}}"],
+              "path": ["products"],
+              "query": [
+                { "key": "per_page", "value": "20" },
+                { "key": "search", "value": "", "disabled": true },
+                { "key": "category_id", "value": "", "disabled": true },
+                { "key": "material", "value": "", "disabled": true },
+                { "key": "capacity", "value": "", "disabled": true },
+                { "key": "shape_type", "value": "", "disabled": true },
+                { "key": "brand", "value": "", "disabled": true },
+                { "key": "featured", "value": "true", "disabled": true }
+              ]
+            },
+            "description": "Public paginated product list. Hidden products are excluded."
+          }
+        },
+        {
+          "name": "Get Single Product (by ID or slug)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/products/{{product_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["products", "{{product_id}}"]
+            },
+            "description": "Accepts numeric ID or slug string."
+          }
+        }
+      ]
+    }
+  ]
+}
