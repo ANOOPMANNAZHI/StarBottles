@@ -6,6 +6,44 @@ import Image from "next/image";
 import Link from "next/link";
 import type { Category } from "@/lib/api";
 
+const R2_BASE = "https://pub-3ac8dfa528c245f39b68fb9600dd0cb9.r2.dev";
+
+function CategoryImage({ slug, staticSrc, alt }: { slug?: string; staticSrc?: string; alt: string }) {
+  const [src, setSrc] = useState(slug ? `${R2_BASE}/${slug}/1.jpg` : (staticSrc ?? ""));
+  const [failed, setFailed] = useState(false);
+
+  if (failed || !src) {
+    return staticSrc && !failed ? (
+      <Image src={staticSrc} alt={alt} fill className="object-cover" sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 17vw" />
+    ) : (
+      <div className="absolute inset-0 flex items-center justify-center bg-brand-pale/40">
+        <svg className="w-10 h-10 text-brand/20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+        </svg>
+      </div>
+    );
+  }
+
+  return (
+    <Image
+      src={src}
+      alt={alt}
+      fill
+      className="object-cover"
+      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 17vw"
+      onError={() => {
+        if (slug && src !== (staticSrc ?? "")) {
+          // R2 failed — try static fallback
+          setSrc(staticSrc ?? "");
+          if (!staticSrc) setFailed(true);
+        } else {
+          setFailed(true);
+        }
+      }}
+    />
+  );
+}
+
 const spring = [0.22, 1, 0.36, 1] as const;
 
 const FALLBACK_CATEGORIES = [
@@ -95,7 +133,7 @@ const FALLBACK_CATEGORIES = [
   },
 ];
 
-type DisplayCategory = (typeof FALLBACK_CATEGORIES)[0];
+type DisplayCategory = (typeof FALLBACK_CATEGORIES)[0] & { slug?: string };
 
 // Maps for enriching API categories with frontend-only visual data
 const ICON_MAP: Record<string, typeof FALLBACK_CATEGORIES[0]["icon"]> = {};
@@ -132,9 +170,10 @@ function apiCategoryToDisplay(cat: Category): DisplayCategory {
   const color = cat.color || fallbackColors.color;
   return {
     label: cat.name,
+    slug: cat.slug,
     tagline: cat.tagline || TAGLINE_MAP[key] || "",
     href: `/products?category=${encodeURIComponent(cat.name)}`,
-    image: cat.image_url || IMAGE_MAP[key] || "https://shop.starbottles.in/wp-content/uploads/2025/11/M3.webp",
+    image: IMAGE_MAP[key] || "https://shop.starbottles.in/wp-content/uploads/2025/11/M3.webp",
     color,
     lightBg: cat.color ? lightenColor(cat.color) : fallbackColors.lightBg,
     icon: ICON_MAP[key] || DEFAULT_ICON,
@@ -177,13 +216,7 @@ function CategoryCard({ cat, index }: { cat: DisplayCategory; index: number }) {
               animate={{ scale: hovered ? 1.08 : 1, y: hovered ? -6 : 0 }}
               transition={{ duration: 0.5, ease: spring }}
             >
-              <Image
-                src={cat.image}
-                alt={cat.label}
-                fill
-                className="object-cover"
-                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 17vw"
-              />
+              <CategoryImage slug={cat.slug} staticSrc={cat.image} alt={cat.label} />
             </motion.div>
 
             {/* SKU count badge */}
@@ -203,7 +236,7 @@ function CategoryCard({ cat, index }: { cat: DisplayCategory; index: number }) {
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.3 }}
-                  className="absolute inset-0 flex items-center justify-center"
+                  className="absolute inset-0 flex items-center justify-center pointer-events-none"
                   style={{ background: `linear-gradient(180deg, transparent 20%, ${cat.color}40 100%)` }}
                 >
                   <motion.span
