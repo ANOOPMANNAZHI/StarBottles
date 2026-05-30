@@ -20,6 +20,7 @@ class WebsiteController extends BaseApiController
             'subtitle'           => $b->subtitle,
             'eyebrow'            => $b->eyebrow,
             'image_url'          => $b->image_url,
+            'video_url'          => $b->video_url,
             'cta_text'           => $b->cta_text,
             'cta_url'            => $b->cta_url,
             'cta_secondary_text' => $b->cta_secondary_text,

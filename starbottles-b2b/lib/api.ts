@@ -113,6 +113,7 @@ export type Banner = {
   subtitle: string | null;
   eyebrow: string | null;
   image_url: string;
+  video_url: string | null;
   cta_text: string | null;
   cta_url: string | null;
   cta_secondary_text: string | null;
@@ -141,11 +142,11 @@ export type CatalogueItem = {
 };
 
 export async function fetchSiteSettings(): Promise<SiteSettings> {
-  return apiFetch<SiteSettings>("/api/v1/website/settings", 3600);
+  return apiFetch<SiteSettings>("/api/v1/website/settings", 60);
 }
 
 export async function fetchBanners(): Promise<Banner[]> {
-  return apiFetch<Banner[]>("/api/v1/website/banners", 3600);
+  return apiFetch<Banner[]>("/api/v1/website/banners", 60);
 }
 
 export async function fetchCategories(): Promise<Category[]> {

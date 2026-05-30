@@ -23,7 +23,8 @@ class CmsBannerController extends BaseApiController
             'title'              => 'required|string|max:255',
             'subtitle'           => 'nullable|string|max:255',
             'eyebrow'            => 'nullable|string|max:255',
-            'image'              => 'required|file|max:5120|mimes:jpg,jpeg,png,webp',
+            'image'              => 'nullable|file|max:5120|mimes:jpg,jpeg,png,webp',
+            'video_url'          => 'nullable|string|max:500',
             'cta_text'           => 'nullable|string|max:100',
             'cta_url'            => 'nullable|string|max:255',
             'cta_secondary_text' => 'nullable|string|max:100',
@@ -31,7 +32,14 @@ class CmsBannerController extends BaseApiController
             'is_active'          => 'boolean',
         ]);
 
-        $path = Storage::disk('public')->putFile('cms/banners', $request->file('image'));
+        if (!$request->hasFile('image') && empty($data['video_url'])) {
+            return response()->json(['message' => 'An image is required when no video URL is provided.'], 422);
+        }
+
+        $path = $request->hasFile('image')
+            ? Storage::disk('public')->putFile('cms/banners', $request->file('image'))
+            : null;
+
         $maxOrder = Banner::max('display_order') ?? 0;
 
         $banner = Banner::create([
@@ -39,6 +47,7 @@ class CmsBannerController extends BaseApiController
             'subtitle'           => $data['subtitle'] ?? null,
             'eyebrow'            => $data['eyebrow'] ?? null,
             'image_path'         => $path,
+            'video_url'          => $data['video_url'] ?? null,
             'cta_text'           => $data['cta_text'] ?? null,
             'cta_url'            => $data['cta_url'] ?? null,
             'cta_secondary_text' => $data['cta_secondary_text'] ?? null,
@@ -57,6 +66,7 @@ class CmsBannerController extends BaseApiController
             'subtitle'           => 'nullable|string|max:255',
             'eyebrow'            => 'nullable|string|max:255',
             'image'              => 'nullable|file|max:5120|mimes:jpg,jpeg,png,webp',
+            'video_url'          => 'nullable|string|max:500',
             'cta_text'           => 'nullable|string|max:100',
             'cta_url'            => 'nullable|string|max:255',
             'cta_secondary_text' => 'nullable|string|max:100',
@@ -105,6 +115,7 @@ class CmsBannerController extends BaseApiController
             'subtitle'           => $banner->subtitle,
             'eyebrow'            => $banner->eyebrow,
             'image_url'          => $banner->image_url,
+            'video_url'          => $banner->video_url,
             'cta_text'           => $banner->cta_text,
             'cta_url'            => $banner->cta_url,
             'cta_secondary_text' => $banner->cta_secondary_text,

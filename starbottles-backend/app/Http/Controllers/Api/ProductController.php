@@ -34,11 +34,12 @@ class ProductController extends BaseApiController
             $q = trim($request->input('search'));
             $query->where(function ($sub) use ($q) {
                 $sub->where(function ($titleDesc) use ($q) {
-                    // Every word must appear in title or description
+                    // Every word must appear in title, display_name, or description
                     $words = preg_split('/\s+/', $q, -1, PREG_SPLIT_NO_EMPTY);
                     foreach ($words as $word) {
                         $titleDesc->where(function ($w) use ($word) {
                             $w->where('title', 'like', "%{$word}%")
+                              ->orWhere('display_name', 'like', "%{$word}%")
                               ->orWhere('description', 'like', "%{$word}%");
                         });
                     }

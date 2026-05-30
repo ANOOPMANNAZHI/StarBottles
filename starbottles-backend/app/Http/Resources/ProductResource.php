@@ -15,8 +15,10 @@ class ProductResource extends JsonResource
             'erp_id'         => $this->erp_id,
             'item_code'      => $this->item_code,
             'title'          => $this->title,
+            'display_name'   => $this->display_name,
             'slug'           => $this->slug,
-            'description'    => $this->description,
+            'description'        => $this->description,
+            'custom_description' => $this->custom_description,
             'category'       => $this->whenLoaded('category', fn() => [
                 'id'   => $this->category->id,
                 'name' => $this->category->name,

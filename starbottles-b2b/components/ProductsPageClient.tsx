@@ -8,6 +8,22 @@ import Link from "next/link";
 import Footer from "@/components/Footer";
 import { productImage, type Product } from "@/lib/api";
 
+const PLACEHOLDER = "https://shop.starbottles.in/wp-content/uploads/2025/11/M3.webp";
+
+function ProductCardImage({ src, alt }: { src: string; alt: string }) {
+  const [imgSrc, setImgSrc] = useState(src);
+  return (
+    <Image
+      src={imgSrc}
+      alt={alt}
+      fill
+      className="object-cover group-hover:scale-[1.06] transition-transform duration-[600ms] ease-out"
+      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+      onError={() => setImgSrc(PLACEHOLDER)}
+    />
+  );
+}
+
 // ─── Tag colour map ────────────────────────────────────────────────────────────
 const tagColors: Record<string, string> = {
   "Best Seller": "bg-amber-50 text-amber-700 ring-1 ring-amber-200/60",
@@ -470,13 +486,7 @@ function ProductCard({ product, index }: { product: Product; index: number }) {
         {/* Image */}
         <div className="relative h-52 bg-gradient-to-br from-[#f7f8fc] via-brand-pale/15 to-[#f0f1f8] overflow-hidden shrink-0">
           {product.image ? (
-            <Image
-              src={productImage(product.image)}
-              alt={product.name}
-              fill
-              className="object-cover group-hover:scale-[1.06] transition-transform duration-[600ms] ease-out"
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-            />
+            <ProductCardImage src={productImage(product.image)} alt={product.name} />
           ) : (
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center">

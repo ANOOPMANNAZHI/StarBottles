@@ -19,6 +19,7 @@ export interface Banner {
   subtitle: string | null;
   eyebrow: string | null;
   image_url: string | null;
+  video_url: string | null;
   cta_text: string | null;
   cta_url: string | null;
   cta_secondary_text: string | null;

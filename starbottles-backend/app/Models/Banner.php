@@ -12,6 +12,7 @@ class Banner extends Model
         'subtitle',
         'eyebrow',
         'image_path',
+        'video_url',
         'cta_text',
         'cta_url',
         'cta_secondary_text',

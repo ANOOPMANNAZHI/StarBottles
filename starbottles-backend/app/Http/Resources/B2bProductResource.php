@@ -44,7 +44,7 @@ class B2bProductResource extends JsonResource
         return [
             'id'              => $this->id,
             'slug'            => $this->slug ?? (string) $this->id,
-            'name'            => $this->title ?? '',
+            'name'            => $this->display_name ?? $this->title ?? '',
             'item_code'       => $this->item_code ?? '',
             'category'        => $this->whenLoaded('category', fn() => $this->category->name ?? '', ''),
             'description'     => $this->description ?? '',

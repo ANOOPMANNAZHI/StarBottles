@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\Admin\CmsTestimonialController;
 use App\Http\Controllers\Api\Admin\CatalogueController;
 use App\Http\Controllers\Api\Admin\ErpSyncController;
 use App\Http\Controllers\Api\Admin\ProductCategoryController;
+use App\Http\Controllers\Api\Admin\ProductDisplayNameController;
 use App\Http\Controllers\Api\Admin\ProductImageController;
 use App\Http\Controllers\Api\Admin\ProductVisibilityController;
 use App\Http\Controllers\Api\Admin\ReportController;
@@ -118,12 +119,16 @@ Route::prefix('v1')->group(function () {
             Route::get('/product-categories',                               [ProductCategoryController::class, 'index']);
             Route::patch('/product-categories/{productCategory}/feature',   [ProductCategoryController::class, 'toggleFeatured']);
             Route::delete('/product-categories/{productCategory}',          [ProductCategoryController::class, 'destroy']);
-            Route::patch('/products/bulk',               [ProductVisibilityController::class, 'bulkUpdate']);
-            Route::patch('/products/{product}/hide',    [ProductVisibilityController::class, 'toggleHidden']);
-            Route::patch('/products/{product}/feature', [ProductVisibilityController::class, 'toggleFeatured']);
-            Route::get('/products/{product}/images',           [ProductImageController::class, 'index']);
-            Route::post('/products/{product}/images',          [ProductImageController::class, 'store']);
-            Route::delete('/products/{product}/images/{index}', [ProductImageController::class, 'destroy']);
+            Route::patch('/products/bulk',                        [ProductVisibilityController::class, 'bulkUpdate']);
+            Route::post('/products/bulk-reset-display-name',      [ProductDisplayNameController::class, 'bulkReset']);
+            Route::post('/products/import-display-names',         [ProductDisplayNameController::class, 'import']);
+            Route::patch('/products/{product}/hide',              [ProductVisibilityController::class, 'toggleHidden']);
+            Route::patch('/products/{product}/feature',           [ProductVisibilityController::class, 'toggleFeatured']);
+            Route::patch('/products/{product}/display-name',      [ProductDisplayNameController::class, 'update']);
+            Route::patch('/products/{product}/description',       [ProductDisplayNameController::class, 'updateDescription']);
+            Route::get('/products/{product}/images',              [ProductImageController::class, 'index']);
+            Route::post('/products/{product}/images',             [ProductImageController::class, 'store']);
+            Route::delete('/products/{product}/images/{index}',   [ProductImageController::class, 'destroy']);
         });
 
         // ── Enquiry management (permission: enquiries) ─────────────────

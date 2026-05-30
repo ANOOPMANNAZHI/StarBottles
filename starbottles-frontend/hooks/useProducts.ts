@@ -13,6 +13,7 @@ export interface ProductListItem {
   erp_id: string;
   item_code: string | null;
   title: string;
+  display_name: string | null;
   category: { id: number; name: string } | null;
   material: string | null;
   capacity: string | null;
@@ -34,7 +35,9 @@ export interface ProductImageSet {
 
 export interface ProductDetail extends ProductListItem {
   slug: string | null;
+  display_name: string | null;
   description: string | null;
+  custom_description: string | null;
   neck_size: string | null;
   shape_type: string | null;
   color: string | null;

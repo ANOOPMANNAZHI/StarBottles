@@ -12,8 +12,10 @@ class Product extends Model
         'erp_id',
         'item_code',
         'title',
+        'display_name',
         'slug',
         'description',
+        'custom_description',
         'category_id',
         'material',
         'capacity',
@@ -62,6 +64,24 @@ class Product extends Model
                 $product->slug = $slug;
             }
         });
+    }
+
+    /**
+     * Returns display_name if set, otherwise falls back to title.
+     * Sync never touches display_name, so it's always preserved across re-syncs.
+     */
+    public function getResolvedDisplayNameAttribute(): string
+    {
+        return $this->display_name ?? $this->title ?? '';
+    }
+
+    /**
+     * Returns custom_description if set, otherwise falls back to ERP description.
+     * Sync never touches custom_description, so it's always preserved across re-syncs.
+     */
+    public function getResolvedDescriptionAttribute(): ?string
+    {
+        return $this->custom_description ?? $this->description;
     }
 
     protected function casts(): array

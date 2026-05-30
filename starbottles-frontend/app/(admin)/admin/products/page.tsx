@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Eye, EyeOff, Star, StarOff, RefreshCw, Loader2, Package, Search, X, CheckCircle2, XCircle, ChevronsUpDown, Check, LayoutGrid, List } from "lucide-react";
+import { Eye, EyeOff, Star, StarOff, RefreshCw, Loader2, Package, Search, X, CheckCircle2, XCircle, ChevronsUpDown, Check, LayoutGrid, List, Pencil, RotateCcw, Upload, FileSpreadsheet, AlertCircle } from "lucide-react";
 import ProductImage from "@/components/ui/ProductImage";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
@@ -17,11 +17,276 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { useProducts, useProductCategories, type ProductListItem, type ProductFilters } from "@/hooks/useProducts";
-import { useToggleProductHidden, useToggleProductFeatured, useAdminProductCategories, useBulkUpdateProducts, type BulkProductAction } from "@/hooks/useProductAdmin";
+import { useToggleProductHidden, useToggleProductFeatured, useAdminProductCategories, useBulkUpdateProducts, useUpdateProductDisplayName, useBulkResetDisplayNames, useImportDisplayNames, type BulkProductAction, type ImportDisplayNameResult } from "@/hooks/useProductAdmin";
 import { useErpSyncStatus, useTriggerSync, useSyncProgress } from "@/hooks/useErpSync";
 
 const CLASSIFICATIONS = ["A", "B", "C", "D"];
 
+// ── Import Display Names Modal ────────────────────────────────────────────────
+
+function ImportDisplayNamesModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<ImportDisplayNameResult | null>(null);
+  const [dragOver, setDragOver] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const importMutation = useImportDisplayNames();
+
+  function reset() {
+    setFile(null);
+    setPreview(null);
+    importMutation.reset();
+  }
+
+  function handleClose() {
+    reset();
+    onClose();
+  }
+
+  async function handlePreview(f: File) {
+    setFile(f);
+    importMutation.reset();
+    setPreview(null);
+    try {
+      const result = await importMutation.mutateAsync({ file: f, dryRun: true });
+      setPreview(result);
+    } catch {
+      // error shown below
+    }
+  }
+
+  async function handleConfirm() {
+    if (!file) return;
+    try {
+      const result = await importMutation.mutateAsync({ file, dryRun: false });
+      setPreview(result);
+      toast.success(`${result.updated} display name${result.updated !== 1 ? "s" : ""} updated`);
+    } catch {
+      toast.error("Import failed");
+    }
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setDragOver(false);
+    const dropped = e.dataTransfer.files[0];
+    if (dropped) handlePreview(dropped);
+  }
+
+  if (!open) return null;
+
+  const isDone = preview && !preview.dry_run;
+  const foundRows = preview?.rows.filter((r) => r.status === "found") ?? [];
+  const notFoundRows = preview?.rows.filter((r) => r.status === "not_found") ?? [];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={handleClose} />
+      <div className="relative bg-card rounded-2xl border border-border shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
+          <div className="flex items-center gap-2.5">
+            <FileSpreadsheet size={18} className="text-primary" />
+            <h2 className="text-base font-semibold">Import Display Names</h2>
+          </div>
+          <button onClick={handleClose} className="text-muted-foreground hover:text-foreground transition-colors">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+          {/* Step 1 — Upload */}
+          {!preview && (
+            <>
+              <p className="text-sm text-muted-foreground">
+                Upload an Excel or CSV file with two columns: <code className="bg-muted px-1 py-0.5 rounded text-xs">SKU</code> and <code className="bg-muted px-1 py-0.5 rounded text-xs">Display Name</code>.
+                Products are matched by SKU (item code).
+              </p>
+              <div
+                className={cn(
+                  "border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-colors",
+                  dragOver ? "border-primary bg-primary/5" : "border-border hover:border-primary/50 hover:bg-muted/30"
+                )}
+                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={handleDrop}
+                onClick={() => fileRef.current?.click()}
+              >
+                <Upload size={28} className="mx-auto mb-3 text-muted-foreground" />
+                <p className="text-sm font-medium">Drop your file here or click to browse</p>
+                <p className="text-xs text-muted-foreground mt-1">.xlsx, .xls, .csv — max 10 MB</p>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  className="hidden"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handlePreview(f); }}
+                />
+              </div>
+              {importMutation.isPending && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 size={14} className="animate-spin" /> Parsing file...
+                </div>
+              )}
+              {importMutation.isError && (
+                <div className="flex items-center gap-2 text-sm text-destructive">
+                  <AlertCircle size={14} /> Failed to parse file. Check the format and try again.
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Step 2 — Preview or Done */}
+          {preview && (
+            <>
+              {/* Summary bar */}
+              <div className="flex items-center gap-3 flex-wrap">
+                <span className="flex items-center gap-1.5 text-sm font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-1.5">
+                  <CheckCircle2 size={14} />
+                  {isDone ? `${preview.updated} updated` : `${foundRows.length} will update`}
+                </span>
+                {notFoundRows.length > 0 && (
+                  <span className="flex items-center gap-1.5 text-sm font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
+                    <AlertCircle size={14} />
+                    {notFoundRows.length} SKU{notFoundRows.length !== 1 ? "s" : ""} not found
+                  </span>
+                )}
+                {preview.skipped > 0 && (
+                  <span className="text-xs text-muted-foreground">{preview.skipped} row{preview.skipped !== 1 ? "s" : ""} skipped</span>
+                )}
+                {!isDone && (
+                  <button onClick={reset} className="ml-auto text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
+                    <X size={12} /> Change file
+                  </button>
+                )}
+              </div>
+
+              {/* Rows table */}
+              {foundRows.length > 0 && (
+                <div className="rounded-xl border border-border overflow-hidden">
+                  <div className="bg-muted/50 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground grid grid-cols-[1fr_1fr_1fr] gap-3">
+                    <span>SKU</span>
+                    <span>{isDone ? "New Display Name" : "Will Set"}</span>
+                    <span>Was</span>
+                  </div>
+                  <div className="max-h-64 overflow-y-auto divide-y divide-border">
+                    {foundRows.map((row, i) => (
+                      <div key={i} className="px-3 py-2 grid grid-cols-[1fr_1fr_1fr] gap-3 text-xs">
+                        <span className="font-mono text-muted-foreground truncate">{row.sku}</span>
+                        <span className="font-medium truncate">{row.display_name ?? <span className="text-muted-foreground/50 italic">reset to ERP</span>}</span>
+                        <span className="text-muted-foreground truncate">{row.current_name ?? <span className="italic">none</span>}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {notFoundRows.length > 0 && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50/50 overflow-hidden">
+                  <div className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-amber-700">
+                    SKUs not found in database
+                  </div>
+                  <div className="max-h-32 overflow-y-auto divide-y divide-amber-100">
+                    {notFoundRows.map((row, i) => (
+                      <div key={i} className="px-3 py-1.5 text-xs font-mono text-amber-800">{row.sku}</div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-border shrink-0 flex items-center justify-end gap-2">
+          {isDone ? (
+            <Button onClick={handleClose}>Done</Button>
+          ) : preview ? (
+            <>
+              <Button variant="outline" onClick={reset}>Back</Button>
+              <Button
+                onClick={handleConfirm}
+                disabled={importMutation.isPending || foundRows.length === 0}
+              >
+                {importMutation.isPending ? (
+                  <><Loader2 size={14} className="animate-spin mr-1.5" />Importing...</>
+                ) : (
+                  `Import ${foundRows.length} product${foundRows.length !== 1 ? "s" : ""}`
+                )}
+              </Button>
+            </>
+          ) : (
+            <Button variant="outline" onClick={handleClose}>Cancel</Button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Inline Display Name Editor ────────────────────────────────────────────────
+
+function InlineDisplayName({
+  displayName,
+  fallback,
+  onSave,
+}: {
+  displayName: string | null;
+  fallback: string;
+  onSave: (value: string | null) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  function startEdit(e: React.MouseEvent) {
+    e.stopPropagation();
+    setDraft(displayName ?? "");
+    setEditing(true);
+    setTimeout(() => inputRef.current?.focus(), 0);
+  }
+
+  function save() {
+    const trimmed = draft.trim();
+    onSave(trimmed === "" ? null : trimmed);
+    setEditing(false);
+  }
+
+  function cancel() {
+    setEditing(false);
+  }
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-1 min-w-0" onClick={(e) => e.stopPropagation()}>
+        <input
+          ref={inputRef}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") save();
+            if (e.key === "Escape") cancel();
+          }}
+          onBlur={save}
+          placeholder={fallback}
+          className="text-xs border border-primary/50 rounded px-1.5 py-1 min-w-0 flex-1 focus:outline-none focus:ring-1 focus:ring-primary bg-background"
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="flex items-center gap-1.5 group cursor-pointer min-w-0"
+      onClick={startEdit}
+      title="Click to edit display name"
+    >
+      <span className={cn("text-xs truncate", displayName ? "text-foreground" : "text-muted-foreground/50 italic")}>
+        {displayName ?? fallback}
+      </span>
+      <Pencil size={10} className="shrink-0 opacity-0 group-hover:opacity-50 text-muted-foreground transition-opacity" />
+    </div>
+  );
+}
 
 type Tab = "all" | "featured" | "hidden";
 type ViewMode = "grid" | "list";
@@ -34,12 +299,14 @@ function AdminProductCard({
   onSelect,
   onToggleHidden,
   onToggleFeatured,
+  onSaveDisplayName,
 }: {
   product: ProductListItem;
   selected: boolean;
   onSelect: (id: number) => void;
   onToggleHidden: (id: number) => void;
   onToggleFeatured: (id: number) => void;
+  onSaveDisplayName: (id: number, value: string | null) => void;
 }) {
   return (
     <div
@@ -85,8 +352,16 @@ function AdminProductCard({
         />
       </div>
 
-      <div className="p-3 flex flex-col flex-1 gap-2">
+      <div className="p-3 flex flex-col flex-1 gap-1.5">
         <p className="text-sm font-semibold line-clamp-2 leading-snug">{product.title}</p>
+        <div className="flex items-center gap-1">
+          <span className="text-[10px] text-muted-foreground/60 shrink-0">Display Name:</span>
+          <InlineDisplayName
+            displayName={product.display_name}
+            fallback={product.title}
+            onSave={(v) => onSaveDisplayName(product.id, v)}
+          />
+        </div>
         <p className="text-xs text-muted-foreground">
           {[product.brand, product.category?.name].filter(Boolean).join(" · ") || "—"}
         </p>
@@ -135,12 +410,14 @@ function AdminProductRow({
   onSelect,
   onToggleHidden,
   onToggleFeatured,
+  onSaveDisplayName,
 }: {
   product: ProductListItem;
   selected: boolean;
   onSelect: (id: number) => void;
   onToggleHidden: (id: number) => void;
   onToggleFeatured: (id: number) => void;
+  onSaveDisplayName: (id: number, value: string | null) => void;
 }) {
   return (
     <div
@@ -172,7 +449,17 @@ function AdminProductRow({
       </span>
 
       {/* Title */}
-      <span className="text-sm font-medium flex-1 truncate min-w-0">{product.title}</span>
+      <span className="text-sm font-medium w-40 shrink-0 truncate min-w-0 hidden xl:block">{product.title}</span>
+      <span className="text-sm font-medium flex-1 truncate min-w-0 xl:hidden">{product.title}</span>
+
+      {/* Display Name */}
+      <div className="w-40 shrink-0 hidden xl:flex items-center min-w-0">
+        <InlineDisplayName
+          displayName={product.display_name}
+          fallback={product.title}
+          onSave={(v) => onSaveDisplayName(product.id, v)}
+        />
+      </div>
 
       {/* Category */}
       <span className="text-xs text-muted-foreground w-32 shrink-0 truncate hidden md:block">
@@ -308,6 +595,7 @@ function BulkActionBar({
   onSelectAll,
   onClear,
   onAction,
+  onResetDisplayNames,
   isPending,
 }: {
   count: number;
@@ -315,6 +603,7 @@ function BulkActionBar({
   onSelectAll: () => void;
   onClear: () => void;
   onAction: (action: BulkProductAction) => void;
+  onResetDisplayNames: () => void;
   isPending: boolean;
 }) {
   if (count === 0) return null;
@@ -386,6 +675,20 @@ function BulkActionBar({
           Unfeature
         </Button>
 
+        <div className="w-px h-5 bg-border mx-0.5" />
+
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 text-xs gap-1.5 text-muted-foreground"
+          disabled={isPending}
+          onClick={onResetDisplayNames}
+          title="Reset display names back to ERP product name"
+        >
+          <RotateCcw size={12} />
+          Reset Names
+        </Button>
+
         <div className="w-px h-5 bg-border mx-1" />
 
         {/* Clear */}
@@ -410,6 +713,7 @@ function BulkActionBar({
 const PER_PAGE_OPTIONS = [12, 24, 48, 96];
 
 export default function AdminProductsPage() {
+  const [importOpen, setImportOpen] = useState(false);
   const [tab, setTab] = useState<Tab>("all");
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(24);
@@ -472,6 +776,8 @@ export default function AdminProductsPage() {
   const toggleHidden = useToggleProductHidden();
   const toggleFeatured = useToggleProductFeatured();
   const bulkUpdate = useBulkUpdateProducts();
+  const updateDisplayName = useUpdateProductDisplayName();
+  const bulkResetDisplayNames = useBulkResetDisplayNames();
 
   const products = data?.data ?? [];
   const pagination = data?.meta?.pagination;
@@ -509,12 +815,44 @@ export default function AdminProductsPage() {
     }
   }
 
+  async function handleBulkResetDisplayNames() {
+    const ids = Array.from(selectedIds);
+    try {
+      await bulkResetDisplayNames.mutateAsync(ids);
+      toast.success(`${ids.length} display name${ids.length !== 1 ? "s" : ""} reset`);
+      clearSelection();
+    } catch {
+      toast.error("Reset failed");
+    }
+  }
+
+  function handleSaveDisplayName(id: number, value: string | null) {
+    updateDisplayName.mutate(
+      { id, displayName: value },
+      {
+        onSuccess: () => toast.success(value ? "Display name saved" : "Display name reset"),
+        onError: () => toast.error("Failed to save display name"),
+      }
+    );
+  }
+
   return (
     <div className={cn("max-w-7xl mx-auto px-6 py-8 space-y-6", selectedIds.size > 0 && "pb-28")}>
       {/* Page header */}
-      <div>
+      <div className="flex items-center justify-between gap-4">
         <h1 className="text-2xl font-bold tracking-tight">Products</h1>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1.5 h-9 text-xs font-semibold"
+          onClick={() => setImportOpen(true)}
+        >
+          <Upload size={13} />
+          Import Display Names
+        </Button>
       </div>
+
+      <ImportDisplayNamesModal open={importOpen} onClose={() => setImportOpen(false)} />
 
       {/* Sync result banner */}
       {triggerSync.syncState === "success" && triggerSync.syncResult && (
@@ -774,6 +1112,7 @@ export default function AdminProductsPage() {
                 onSelect={toggleSelect}
                 onToggleHidden={(id) => toggleHidden.mutate(id)}
                 onToggleFeatured={(id) => toggleFeatured.mutate(id)}
+                onSaveDisplayName={handleSaveDisplayName}
               />
             ))}
           </div>
@@ -789,7 +1128,9 @@ export default function AdminProductsPage() {
             />
             <div className="w-10 shrink-0" />
             <span className="w-24 shrink-0">Item Code</span>
-            <span className="flex-1">Title</span>
+            <span className="w-40 shrink-0 hidden xl:block">Title</span>
+            <span className="flex-1 xl:hidden">Title</span>
+            <span className="w-40 shrink-0 hidden xl:block">B2B Display Name</span>
             <span className="w-32 shrink-0 hidden md:block">Category</span>
             <span className="w-24 shrink-0 hidden lg:block">Brand</span>
             <span className="w-12 shrink-0 hidden lg:block text-center">Class</span>
@@ -804,6 +1145,7 @@ export default function AdminProductsPage() {
               onSelect={toggleSelect}
               onToggleHidden={(id) => toggleHidden.mutate(id)}
               onToggleFeatured={(id) => toggleFeatured.mutate(id)}
+              onSaveDisplayName={handleSaveDisplayName}
             />
           ))}
         </div>
@@ -842,7 +1184,8 @@ export default function AdminProductsPage() {
         onSelectAll={selectAll}
         onClear={clearSelection}
         onAction={handleBulkAction}
-        isPending={bulkUpdate.isPending}
+        onResetDisplayNames={handleBulkResetDisplayNames}
+        isPending={bulkUpdate.isPending || bulkResetDisplayNames.isPending}
       />
     </div>
   );

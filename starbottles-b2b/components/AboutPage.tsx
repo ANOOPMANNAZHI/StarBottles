@@ -145,7 +145,7 @@ function Hero({ stats }: { stats?: CompanyStats }) {
                 { value: stats ? `${stats.clients.value}${stats.clients.suffix}` : "2200+", label: "Clients" },
                 { value: stats ? `${stats.skus.value}${stats.skus.suffix}` : "1500+", label: "SKUs" },
                 { value: stats ? `${stats.states.value}${stats.states.suffix}` : "18+", label: "States" },
-                { value: "15yrs", label: "Experience" },
+                { value: "60yrs", label: "Experience" },
               ].map((s, i) => (
                 <div
                   key={s.label}

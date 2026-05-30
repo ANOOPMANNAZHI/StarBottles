@@ -1,15 +1,16 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Eye, EyeOff, Star, StarOff, ExternalLink, Copy, Check, Share2 } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, Star, StarOff, ExternalLink, Copy, Check, Share2, Pencil, RotateCcw } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import ProductImage from "@/components/ui/ProductImage";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useProduct } from "@/hooks/useProducts";
-import { useToggleProductHidden, useToggleProductFeatured } from "@/hooks/useProductAdmin";
+import { useToggleProductHidden, useToggleProductFeatured, useUpdateProductDisplayName, useUpdateProductDescription } from "@/hooks/useProductAdmin";
+import { toast } from "sonner";
 
 
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
@@ -51,6 +52,202 @@ function CopyButton({ text }: { text: string }) {
     >
       {copied ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} />}
     </button>
+  );
+}
+
+function DisplayNameEditor({ productId, displayName, title }: { productId: number; displayName: string | null; title: string }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const updateDisplayName = useUpdateProductDisplayName();
+
+  function startEdit() {
+    setDraft(displayName ?? "");
+    setEditing(true);
+    setTimeout(() => inputRef.current?.focus(), 0);
+  }
+
+  function save() {
+    const trimmed = draft.trim();
+    const newValue = trimmed === "" ? null : trimmed;
+    updateDisplayName.mutate(
+      { id: productId, displayName: newValue },
+      {
+        onSuccess: () => { toast.success(newValue ? "Display name saved" : "Display name reset"); setEditing(false); },
+        onError: () => toast.error("Failed to save display name"),
+      }
+    );
+  }
+
+  return (
+    <div className="rounded-xl border border-border bg-card shadow-sm">
+      <div className="px-5 py-3 border-b border-border flex items-center justify-between">
+        <h3 className="text-sm font-semibold">B2B Display Name</h3>
+        {!editing && (
+          <div className="flex items-center gap-1.5">
+            {displayName && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-xs text-muted-foreground gap-1"
+                disabled={updateDisplayName.isPending}
+                onClick={() => updateDisplayName.mutate(
+                  { id: productId, displayName: null },
+                  { onSuccess: () => toast.success("Display name reset") }
+                )}
+                title="Reset to ERP product name"
+              >
+                <RotateCcw size={11} />
+                Reset
+              </Button>
+            )}
+            <Button variant="outline" size="sm" className="h-7 px-2 text-xs gap-1" onClick={startEdit}>
+              <Pencil size={11} />
+              Edit
+            </Button>
+          </div>
+        )}
+      </div>
+      <div className="px-5 py-4">
+        {editing ? (
+          <div className="flex items-center gap-2">
+            <input
+              ref={inputRef}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") save(); if (e.key === "Escape") setEditing(false); }}
+              placeholder={title}
+              className="flex-1 text-sm border border-border rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/40 bg-background"
+            />
+            <Button size="sm" className="h-8 text-xs" onClick={save} disabled={updateDisplayName.isPending}>
+              {updateDisplayName.isPending ? "Saving..." : "Save"}
+            </Button>
+            <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setEditing(false)}>
+              Cancel
+            </Button>
+          </div>
+        ) : (
+          <div>
+            {displayName ? (
+              <p className="text-sm font-medium text-foreground">{displayName}</p>
+            ) : (
+              <p className="text-sm text-muted-foreground/60 italic">Using product name — "{title}"</p>
+            )}
+            <p className="text-xs text-muted-foreground mt-1">
+              {displayName
+                ? "This custom name is shown on the B2B website instead of the ERP product name."
+                : "No custom display name set. The ERP product name is shown on the B2B website. This is never overwritten by re-sync."}
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function DescriptionEditor({
+  productId,
+  customDescription,
+  erpDescription,
+}: {
+  productId: number;
+  customDescription: string | null;
+  erpDescription: string | null;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const updateDescription = useUpdateProductDescription();
+
+  function startEdit() {
+    setDraft(customDescription ?? "");
+    setEditing(true);
+  }
+
+  function save() {
+    const trimmed = draft.trim();
+    const newValue = trimmed === "" ? null : trimmed;
+    updateDescription.mutate(
+      { id: productId, customDescription: newValue },
+      {
+        onSuccess: () => {
+          toast.success(newValue ? "Description saved" : "Description reset to ERP value");
+          setEditing(false);
+        },
+        onError: () => toast.error("Failed to save description"),
+      }
+    );
+  }
+
+  return (
+    <div className="rounded-xl border border-border bg-card shadow-sm">
+      <div className="px-5 py-3 border-b border-border flex items-center justify-between">
+        <h3 className="text-sm font-semibold">Description</h3>
+        {!editing && (
+          <div className="flex items-center gap-1.5">
+            {customDescription && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-xs text-muted-foreground gap-1"
+                disabled={updateDescription.isPending}
+                onClick={() =>
+                  updateDescription.mutate(
+                    { id: productId, customDescription: null },
+                    { onSuccess: () => toast.success("Description reset to ERP value") }
+                  )
+                }
+                title="Reset to ERP description"
+              >
+                <RotateCcw size={11} />
+                Reset
+              </Button>
+            )}
+            <Button variant="outline" size="sm" className="h-7 px-2 text-xs gap-1" onClick={startEdit}>
+              <Pencil size={11} />
+              Edit
+            </Button>
+          </div>
+        )}
+      </div>
+      <div className="px-5 py-4">
+        {editing ? (
+          <div className="space-y-2">
+            <textarea
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Escape") setEditing(false); }}
+              placeholder={erpDescription ?? "Enter a description…"}
+              rows={5}
+              className="w-full text-sm border border-border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/40 bg-background resize-y"
+            />
+            <div className="flex items-center gap-2">
+              <Button size="sm" className="h-8 text-xs" onClick={save} disabled={updateDescription.isPending}>
+                {updateDescription.isPending ? "Saving..." : "Save"}
+              </Button>
+              <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setEditing(false)}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div>
+            {customDescription ? (
+              <>
+                <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">{customDescription}</p>
+                <p className="text-xs text-muted-foreground mt-2">Custom description — ERP value is preserved but not shown.</p>
+              </>
+            ) : erpDescription ? (
+              <>
+                <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">{erpDescription}</p>
+                <p className="text-xs text-muted-foreground mt-2">Showing ERP description. Edit to set a custom one that won&apos;t be overwritten by sync.</p>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground/50">No description available.</p>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -275,6 +472,13 @@ export default function AdminProductDetailPage() {
 
         {/* Right column — Details */}
         <div className="lg:col-span-2 space-y-6">
+          {/* B2B Display Name */}
+          <DisplayNameEditor
+            productId={product.id}
+            displayName={product.display_name}
+            title={product.title}
+          />
+
           {/* ERP Details */}
           <div className="rounded-xl border border-border bg-card shadow-sm">
             <div className="px-5 py-3 border-b border-border">
@@ -333,20 +537,11 @@ export default function AdminProductDetailPage() {
           </div>
 
           {/* Description */}
-          <div className="rounded-xl border border-border bg-card shadow-sm">
-            <div className="px-5 py-3 border-b border-border">
-              <h3 className="text-sm font-semibold">Description</h3>
-            </div>
-            <div className="px-5 py-4">
-              {product.description ? (
-                <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">
-                  {product.description}
-                </p>
-              ) : (
-                <p className="text-sm text-muted-foreground/50">No description available.</p>
-              )}
-            </div>
-          </div>
+          <DescriptionEditor
+            productId={product.id}
+            customDescription={product.custom_description}
+            erpDescription={product.description}
+          />
 
           {/* Variations */}
           <div className="rounded-xl border border-border bg-card shadow-sm">

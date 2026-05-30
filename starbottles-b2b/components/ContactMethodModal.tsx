@@ -10,12 +10,29 @@ interface Props {
   onClose: () => void;
 }
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+
 export default function ContactMethodModal({ productName, productUrl, isOpen, onClose }: Props) {
   const [step, setStep] = useState<"select" | "phone" | "email">("select");
   const [form, setForm] = useState({ name: "", phone: "", email: "", message: "" });
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [waNumber, setWaNumber] = useState("918086850000");
+  const [phoneDisplay, setPhoneDisplay] = useState("+91 80 86 85 00 00");
+  const [phoneRaw, setPhoneRaw] = useState("918086850000");
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/v1/website/settings`, { headers: { Accept: "application/json" } })
+      .then((r) => r.json())
+      .then((json) => {
+        const s = json.data ?? json;
+        if (s.whatsapp_number) setWaNumber(s.whatsapp_number);
+        if (s.contact_phone) setPhoneDisplay(s.contact_phone);
+        if (s.contact_phone_raw) setPhoneRaw(s.contact_phone_raw);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!isOpen) {
@@ -36,12 +53,12 @@ export default function ContactMethodModal({ productName, productUrl, isOpen, on
   }, [isOpen]);
 
   const waMsg = productName
-    ? `https://wa.me/918086850000?text=Hi%2C%20I'm%20interested%20in%20` +
+    ? `https://wa.me/${waNumber}?text=Hi%2C%20I'm%20interested%20in%20` +
       encodeURIComponent(productName) +
       `.%20Product%20Link%3A%20` +
       (productUrl ? encodeURIComponent((process.env.NEXT_PUBLIC_SITE_URL ?? "") + productUrl) : "") +
       `%20Could%20you%20provide%20more%20information%3F`
-    : "https://wa.me/918086850000?text=Hi%2C%20I%20would%20like%20to%20enquire%20about%20packaging%20products.";
+    : `https://wa.me/${waNumber}?text=Hi%2C%20I%20would%20like%20to%20enquire%20about%20packaging%20products.`;
 
   const handleShare = async () => {
     const url = productUrl
@@ -261,10 +278,10 @@ export default function ContactMethodModal({ productName, productUrl, isOpen, on
                       Call us directly or let us call you back.
                     </p>
                     <a
-                      href="tel:+918086850000"
+                      href={`tel:+${phoneRaw}`}
                       className="block w-full bg-brand hover:bg-brand-light text-white font-poppins font-bold text-lg py-4.5 rounded-2xl transition-all duration-300 shadow-[0_4px_20px_rgba(27,33,120,0.3)] hover:shadow-[0_8px_30px_rgba(27,33,120,0.4)] mb-4"
                     >
-                      +91 80 86 85 00 00
+                      {phoneDisplay}
                     </a>
                     <p className="font-inter text-xs text-gray-400">
                       Mon - Sat, 9:00 AM - 6:00 PM IST

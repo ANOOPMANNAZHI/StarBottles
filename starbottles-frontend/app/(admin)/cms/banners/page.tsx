@@ -13,7 +13,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, ArrowUp, ArrowDown, Trash2, Pencil, Loader2, Eye, EyeOff, PanelTop, Link2 } from "lucide-react";
+import { Plus, ArrowUp, ArrowDown, Trash2, Pencil, Loader2, Eye, EyeOff, PanelTop, Link2, Film } from "lucide-react";
 import { toast } from "sonner";
 
 export default function BannersPage() {
@@ -26,12 +26,12 @@ export default function BannersPage() {
   const [editing, setEditing] = useState<Banner | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Banner | null>(null);
 
-  const [form, setForm] = useState({ title: "", subtitle: "", eyebrow: "", cta_text: "", cta_url: "", cta_secondary_text: "", cta_secondary_url: "", is_active: true });
+  const [form, setForm] = useState({ title: "", subtitle: "", eyebrow: "", video_url: "", cta_text: "", cta_url: "", cta_secondary_text: "", cta_secondary_url: "", is_active: true });
   const [imageFile, setImageFile] = useState<File | null>(null);
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ title: "", subtitle: "", eyebrow: "", cta_text: "", cta_url: "", cta_secondary_text: "", cta_secondary_url: "", is_active: true });
+    setForm({ title: "", subtitle: "", eyebrow: "", video_url: "", cta_text: "", cta_url: "", cta_secondary_text: "", cta_secondary_url: "", is_active: true });
     setImageFile(null);
     setDialogOpen(true);
   };
@@ -42,6 +42,7 @@ export default function BannersPage() {
       title: banner.title,
       subtitle: banner.subtitle ?? "",
       eyebrow: banner.eyebrow ?? "",
+      video_url: banner.video_url ?? "",
       cta_text: banner.cta_text ?? "",
       cta_url: banner.cta_url ?? "",
       cta_secondary_text: banner.cta_secondary_text ?? "",
@@ -57,23 +58,32 @@ export default function BannersPage() {
     fd.append("title", form.title);
     if (form.subtitle) fd.append("subtitle", form.subtitle);
     if (form.eyebrow) fd.append("eyebrow", form.eyebrow);
+    if (form.video_url) fd.append("video_url", form.video_url);
     if (form.cta_text) fd.append("cta_text", form.cta_text);
     if (form.cta_url) fd.append("cta_url", form.cta_url);
     if (form.cta_secondary_text) fd.append("cta_secondary_text", form.cta_secondary_text);
     if (form.cta_secondary_url) fd.append("cta_secondary_url", form.cta_secondary_url);
     fd.append("is_active", form.is_active ? "1" : "0");
 
-    if (editing) {
-      if (imageFile) fd.append("image", imageFile);
-      await updateBanner.mutateAsync({ id: editing.id, fd });
-      toast.success("Banner updated");
-    } else {
-      if (!imageFile) { toast.error("Image is required"); return; }
-      fd.append("image", imageFile);
-      await createBanner.mutateAsync(fd);
-      toast.success("Banner created");
+    try {
+      if (editing) {
+        if (imageFile) fd.append("image", imageFile);
+        await updateBanner.mutateAsync({ id: editing.id, fd });
+        toast.success("Banner updated");
+      } else {
+        if (!imageFile && !form.video_url) { toast.error("Image is required when no video URL is set"); return; }
+        if (imageFile) fd.append("image", imageFile);
+        await createBanner.mutateAsync(fd);
+        toast.success("Banner created");
+      }
+      setDialogOpen(false);
+    } catch (err: any) {
+      const errors = err?.response?.data?.errors as Record<string, string[]> | undefined;
+      const msg = err?.response?.data?.message
+        || (errors ? Object.values(errors)[0]?.[0] : undefined)
+        || "Something went wrong";
+      toast.error(msg as string);
     }
-    setDialogOpen(false);
   };
 
   const toggleActive = async (banner: Banner) => {
@@ -148,6 +158,11 @@ export default function BannersPage() {
                   <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${banner.is_active ? "bg-green-500/10 text-green-600" : "bg-muted text-muted-foreground"}`}>
                     {banner.is_active ? "Active" : "Inactive"}
                   </span>
+                  {banner.video_url && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600">
+                      <Film size={10} /> Video
+                    </span>
+                  )}
                 </div>
                 {banner.subtitle && (
                   <p className="text-xs text-muted-foreground truncate mt-0.5">{banner.subtitle}</p>
@@ -209,11 +224,11 @@ export default function BannersPage() {
 
       {/* Create / Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
+        <DialogContent className="max-w-lg max-h-[90vh] flex flex-col">
+          <DialogHeader className="shrink-0">
             <DialogTitle>{editing ? "Edit Banner" : "New Banner"}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-5 pt-1">
+          <div className="space-y-5 pt-1 overflow-y-auto flex-1 pr-1">
             {/* Basic info */}
             <div className="space-y-3">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Banner Content</p>
@@ -246,7 +261,9 @@ export default function BannersPage() {
               </div>
               <div>
                 <label className="text-sm font-medium">
-                  Image {!editing && <span className="text-destructive">*</span>}
+                  Image
+                  {!editing && !form.video_url && <span className="text-destructive">*</span>}
+                  {!editing && form.video_url && <span className="text-xs text-muted-foreground font-normal ml-1">(optional — used as poster/fallback)</span>}
                   {editing && <span className="text-xs text-muted-foreground ml-1">(leave blank to keep current)</span>}
                 </label>
                 <Input
@@ -255,6 +272,16 @@ export default function BannersPage() {
                   className="mt-1"
                   onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
                 />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Video URL <span className="text-xs text-muted-foreground font-normal ml-1">(optional — YouTube link or direct .mp4 URL)</span></label>
+                <Input
+                  className="mt-1"
+                  value={form.video_url}
+                  onChange={(e) => setForm({ ...form, video_url: e.target.value })}
+                  placeholder="https://www.youtube.com/watch?v=... or https://example.com/video.mp4"
+                />
+                <p className="text-xs text-muted-foreground mt-1">When set, the video plays as the banner background. Image is used as poster/fallback.</p>
               </div>
             </div>
 
@@ -318,13 +345,13 @@ export default function BannersPage() {
               </div>
             </label>
 
-            <div className="flex justify-end gap-2 pt-1">
-              <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-              <Button onClick={handleSubmit} disabled={busy}>
-                {busy && <Loader2 size={16} className="mr-2 animate-spin" />}
-                {editing ? "Update Banner" : "Create Banner"}
-              </Button>
-            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-3 shrink-0 border-t border-border/50">
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSubmit} disabled={busy}>
+              {busy && <Loader2 size={16} className="mr-2 animate-spin" />}
+              {editing ? "Update Banner" : "Create Banner"}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

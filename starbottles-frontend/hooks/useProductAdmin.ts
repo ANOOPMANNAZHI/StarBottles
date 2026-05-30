@@ -94,6 +94,86 @@ export function useBulkUpdateProducts() {
   });
 }
 
+export function useUpdateProductDisplayName() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, displayName }: { id: number; displayName: string | null }) =>
+      api.patch(`/v1/products/${id}/display-name`, { display_name: displayName }).then((r) => r.data.data),
+    onMutate: async ({ id, displayName }) => {
+      const prev = queryClient.getQueriesData<{ data: ProductListItem[] }>({ queryKey: ["products"], exact: false });
+      patchProduct(queryClient, id, { display_name: displayName });
+      return { prev };
+    },
+    onError: (_err, _vars, ctx) => {
+      ctx?.prev.forEach(([key, data]) => queryClient.setQueryData(key, data));
+    },
+    onSettled: (_data, _err, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["product", String(vars.id)] });
+      queryClient.invalidateQueries({ queryKey: ["product", vars.id] });
+    },
+  });
+}
+
+export function useUpdateProductDescription() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, customDescription }: { id: number; customDescription: string | null }) =>
+      api.patch(`/v1/products/${id}/description`, { custom_description: customDescription }).then((r) => r.data.data),
+    onSettled: (_data, _err, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["product", String(vars.id)] });
+      queryClient.invalidateQueries({ queryKey: ["product", vars.id] });
+    },
+  });
+}
+
+export interface ImportDisplayNameRow {
+  sku: string;
+  display_name: string | null;
+  current_name: string | null;
+  erp_title?: string;
+  status: 'found' | 'not_found';
+}
+
+export interface ImportDisplayNameResult {
+  dry_run: boolean;
+  updated: number;
+  not_found: number;
+  skipped: number;
+  rows: ImportDisplayNameRow[];
+}
+
+export function useImportDisplayNames() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ file, dryRun }: { file: File; dryRun: boolean }) => {
+      const form = new FormData();
+      form.append('file', file);
+      form.append('dry_run', dryRun ? '1' : '0');
+      return api.post<{ data: ImportDisplayNameResult }>('/v1/products/import-display-names', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      }).then((r) => r.data.data);
+    },
+    onSuccess: (data) => {
+      if (!data.dry_run) {
+        queryClient.invalidateQueries({ queryKey: ['products'] });
+      }
+    },
+  });
+}
+
+export function useBulkResetDisplayNames() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: number[]) =>
+      api.post("/v1/products/bulk-reset-display-name", { ids }).then((r) => r.data),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+    },
+  });
+}
+
 // ── Product Category Admin Hooks ─────────────────────────────────────
 
 export interface AdminProductCategory {
