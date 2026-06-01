@@ -140,7 +140,7 @@ export default function ProductDetailClient({
                           willChange: "transform",
                         }}
                       >
-                        <Image src={allImages[activeImg]} alt={product.name} fill className="object-cover" sizes="(max-width: 1024px) 100vw, 50vw" priority onError={(e) => { (e.target as HTMLImageElement).src = "https://shop.starbottles.in/wp-content/uploads/2025/11/M3.webp"; }} />
+                        <Image src={allImages[activeImg]} alt={product.name} fill className="object-cover" sizes="(max-width: 1024px) 100vw, 50vw" priority onError={(e) => { (e.target as HTMLImageElement).src = "/default.png"; }} />
                       </div>
                     </motion.div>
                   ) : (
@@ -190,7 +190,7 @@ export default function ProductDetailClient({
                             : "ring-1 ring-gray-200/60 hover:ring-brand/30 hover:shadow-sm"
                         }`}
                       >
-                        <Image src={img} alt={`${product.name} ${i + 1}`} fill className="object-cover" sizes="10vw" />
+                        <Image src={img} alt={`${product.name} ${i + 1}`} fill className="object-cover" sizes="10vw" onError={(e) => { (e.target as HTMLImageElement).src = "/default.png"; }} />
                       </button>
                     ))}
                   </div>
@@ -407,7 +407,7 @@ export default function ProductDetailClient({
                       style={{ background: "linear-gradient(145deg, #f7f8fc 0%, #eef0f7 100%)" }}
                     >
                       {p.image ? (
-                        <Image src={productImage(p.image)} alt={p.name} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="(max-width: 768px) 50vw, 25vw" />
+                        <Image src={productImage(p.image)} alt={p.name} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="(max-width: 768px) 50vw, 25vw" onError={(e) => { (e.target as HTMLImageElement).src = "/default.png"; }} />
                       ) : (
                         <div className="absolute inset-0 flex items-center justify-center">
                           <svg className="w-8 h-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>

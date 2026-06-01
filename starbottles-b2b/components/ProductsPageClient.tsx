@@ -8,7 +8,7 @@ import Link from "next/link";
 import Footer from "@/components/Footer";
 import { productImage, type Product } from "@/lib/api";
 
-const PLACEHOLDER = "https://shop.starbottles.in/wp-content/uploads/2025/11/M3.webp";
+const PLACEHOLDER = "/default.png";
 
 function ProductCardImage({ src, alt }: { src: string; alt: string }) {
   const [imgSrc, setImgSrc] = useState(src);
@@ -561,7 +561,7 @@ function ProductCard({ product, index }: { product: Product; index: number }) {
 const PAGE_SIZE = 9;
 
 // ─── Main client component ────────────────────────────────────────────────────
-export default function ProductsPageClient({ initialProducts }: { initialProducts: Product[] }) {
+export default function ProductsPageClient({ initialProducts, whatsapp = "918086850000" }: { initialProducts: Product[]; whatsapp?: string }) {
   const allCategories = useMemo(() => Array.from(new Set(initialProducts.map((p) => p.category))).filter(Boolean), [initialProducts]);
   const allMaterials = useMemo(() => Array.from(new Set(initialProducts.flatMap((p) => parseMaterials(p.material)))).sort(), [initialProducts]);
 
@@ -609,6 +609,7 @@ export default function ProductsPageClient({ initialProducts }: { initialProduct
         const inApps = p.applications.some((a) => (a ?? "").toLowerCase().includes(q));
         const matchSearch =
           (p.name ?? "").toLowerCase().includes(q) ||
+          (p.item_code ?? "").toLowerCase().includes(q) ||
           (p.description ?? "").toLowerCase().includes(q) ||
           (p.material ?? "").toLowerCase().includes(q) ||
           (p.category ?? "").toLowerCase().includes(q) ||
@@ -946,7 +947,7 @@ export default function ProductsPageClient({ initialProducts }: { initialProduct
                     </svg>
                   </Link>
                   <a
-                    href="https://wa.me/919847212407?text=Hi%2C%20I%20need%20custom%20packaging%20for%20my%20product."
+                    href={`https://wa.me/${whatsapp}?text=Hi%2C%20I%20need%20custom%20packaging%20for%20my%20product.`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 bg-[#25D366] hover:bg-[#1fba5a] text-white font-poppins font-semibold px-6 py-3.5 rounded-xl transition-colors shadow-lg shadow-[#25D366]/20"

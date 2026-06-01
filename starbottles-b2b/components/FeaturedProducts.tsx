@@ -55,7 +55,7 @@ function QuickViewModal({ product, onClose }: { product: Product; onClose: () =>
               style={{ background: "linear-gradient(160deg, #f0f1f8 0%, #e8eaf5 40%, #dfe1f0 100%)" }}
             >
               <div className="absolute inset-0 opacity-[0.04] pointer-events-none" style={{ backgroundImage: "radial-gradient(circle, #1B2178 1px, transparent 1px)", backgroundSize: "20px 20px" }} />
-              <img src={productImage(product.image)} alt={product.name} className="absolute inset-0 w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = "https://shop.starbottles.in/wp-content/uploads/2025/11/M3.webp"; }} />
+              <img src={productImage(product.image)} alt={product.name} className="absolute inset-0 w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = "/default.png"; }} />
               {product.tag && (
                 <span className={`absolute top-5 left-5 font-inter text-[10px] font-bold uppercase tracking-wider px-3.5 py-1.5 rounded-full shadow-lg ${tagColors[product.tag]?.bg ?? "bg-gray-700"} ${tagColors[product.tag]?.text ?? "text-white"}`}>
                   {product.tag}
@@ -163,7 +163,7 @@ function SlideCard({ product, onQuickView }: { product: Product; onQuickView: (p
             animate={{ scale: hovered ? 1.08 : 1, y: hovered ? -4 : 0 }}
             transition={{ duration: 0.5, ease: spring }}
           >
-            <img src={productImage(product.image)} alt={product.name} className="absolute inset-0 w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = "https://shop.starbottles.in/wp-content/uploads/2025/11/M3.webp"; }} />
+            <img src={productImage(product.image)} alt={product.name} className="absolute inset-0 w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = "/default.png"; }} />
           </motion.div>
 
           {product.tag && (

@@ -80,15 +80,14 @@ function StandardCard({
             animate={hovered ? { scale: 1.06, rotate: 1 } : { scale: 1, rotate: 0 }}
             transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           >
-            {productImage(product.image) && (
-              <Image
-                src={productImage(product.image)}
-                alt={product.name}
-                fill
-                className="object-cover"
-                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-              />
-            )}
+            <Image
+              src={productImage(product.image)}
+              alt={product.name}
+              fill
+              className="object-cover"
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              onError={(e) => { (e.target as HTMLImageElement).src = "/default.png"; }}
+            />
           </motion.div>
         </div>
 
@@ -289,13 +288,14 @@ function HeroCard({
                 backdropFilter: "blur(2px)",
               }}
             >
-              {productImage(product.image) && (
+              {true && (
                 <Image
                   src={productImage(product.image)}
                   alt={product.name}
                   fill
                   className="object-cover"
                   sizes="(max-width: 768px) 80vw, 40vw"
+                  onError={(e) => { (e.target as HTMLImageElement).src = "/default.png"; }}
                 />
               )}
             </motion.div>
@@ -369,13 +369,14 @@ function PortraitCard({
             animate={hovered ? { scale: 1.06, rotate: 1 } : { scale: 1, rotate: 0 }}
             transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           >
-            {productImage(product.image) && (
+            {true && (
               <Image
                 src={productImage(product.image)}
                 alt={product.name}
                 fill
                 className="object-contain p-8"
                 sizes="(max-width: 768px) 100vw, 33vw"
+                onError={(e) => { (e.target as HTMLImageElement).src = "/default.png"; }}
               />
             )}
           </motion.div>

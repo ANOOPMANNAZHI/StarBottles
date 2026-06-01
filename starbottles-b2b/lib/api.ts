@@ -1,6 +1,6 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
-const PLACEHOLDER_IMAGE = "https://shop.starbottles.in/wp-content/uploads/2025/11/M3.webp";
+const PLACEHOLDER_IMAGE = "/default.png";
 
 /** Check if a URL points to a legacy dev dummy image (card_0.webp etc.) */
 function isDummyImage(url: string): boolean {
@@ -98,11 +98,11 @@ export async function fetchProductBySlug(slug: string): Promise<Product> {
 }
 
 export async function fetchTestimonials(): Promise<Testimonial[]> {
-  return apiFetch<Testimonial[]>("/api/v1/website/testimonials", 86400);
+  return apiFetch<Testimonial[]>("/api/v1/website/testimonials", 0);
 }
 
 export async function fetchCompanyStats(): Promise<CompanyStats> {
-  return apiFetch<CompanyStats>("/api/v1/website/company-stats", 300);
+  return apiFetch<CompanyStats>("/api/v1/website/company-stats", 0);
 }
 
 export type SiteSettings = Record<string, string | null>;
@@ -142,15 +142,15 @@ export type CatalogueItem = {
 };
 
 export async function fetchSiteSettings(): Promise<SiteSettings> {
-  return apiFetch<SiteSettings>("/api/v1/website/settings", 60);
+  return apiFetch<SiteSettings>("/api/v1/website/settings", 0);
 }
 
 export async function fetchBanners(): Promise<Banner[]> {
-  return apiFetch<Banner[]>("/api/v1/website/banners", 60);
+  return apiFetch<Banner[]>("/api/v1/website/banners", 0);
 }
 
 export async function fetchCategories(): Promise<Category[]> {
-  return apiFetch<Category[]>("/api/v1/products/categories", 300);
+  return apiFetch<Category[]>("/api/v1/products/categories", 0);
 }
 
 export async function fetchFeaturedCategories(): Promise<Category[]> {
@@ -158,9 +158,9 @@ export async function fetchFeaturedCategories(): Promise<Category[]> {
 }
 
 export async function fetchPageContent(slug: string): Promise<PageContent> {
-  return apiFetch<PageContent>(`/api/v1/website/pages/${slug}`, 3600);
+  return apiFetch<PageContent>(`/api/v1/website/pages/${slug}`, 0);
 }
 
 export async function fetchActiveCatalogues(): Promise<CatalogueItem[]> {
-  return apiFetch<CatalogueItem[]>("/api/v1/catalogues/active", 300);
+  return apiFetch<CatalogueItem[]>("/api/v1/catalogues/active", 0);
 }

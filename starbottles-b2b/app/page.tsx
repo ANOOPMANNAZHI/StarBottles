@@ -14,7 +14,7 @@ import {
   fetchBanners, fetchCategories, fetchFeaturedCategories, fetchSiteSettings, fetchPageContent,
 } from "@/lib/api";
 
-export const revalidate = 60;
+export const revalidate = 0;
 
 export default async function Home() {
   const [stats, testimonials, products, banners, categories, featuredCategories, settings, homeContent] = await Promise.all([

@@ -46,12 +46,13 @@ const DEFAULT_SETTINGS = {
   phoneRaw: "918086850000",
   whatsapp: "918086850000",
   email: "mail@starbottles.in",
-  businessHours: "Mon–Sat, 9 AM – 6 PM IST",
+  businessHours: "Mon–Sat, 9:30 AM – 7 PM IST",
 };
 
 const HOURS = [
-  { day: "Monday - Friday", time: "9:00 AM - 6:00 PM", open: true },
-  { day: "Saturday", time: "9:00 AM - 2:00 PM", open: true },
+  { day: "Monday – Thursday", time: "9:30 AM – 7:00 PM", open: true },
+  { day: "Friday", time: "9:30 AM – 12:30 PM, 2:00 PM – 7:00 PM", open: true },
+  { day: "Saturday", time: "9:30 AM – 7:00 PM", open: true },
   { day: "Sunday", time: "Closed", open: false },
 ];
 
@@ -59,9 +60,9 @@ function isCurrentlyOpen() {
   const now = new Date();
   const day = now.getDay(); // 0=Sun, 6=Sat
   const hour = now.getHours() + now.getMinutes() / 60;
-  if (day === 0) return false;
-  if (day === 6) return hour >= 9 && hour < 14;
-  return hour >= 9 && hour < 18;
+  if (day === 0) return false; // Sunday closed
+  if (day === 5) return (hour >= 9.5 && hour < 12.5) || (hour >= 14 && hour < 19); // Friday split hours
+  return hour >= 9.5 && hour < 19; // Mon–Thu, Sat
 }
 
 export default function ContactPage() {
@@ -329,7 +330,7 @@ export default function ContactPage() {
                 name: "Ernakulam Branch",
                 phone: "+91 8136935777",
                 phoneTel: "tel:+918136935777",
-                email: "om@starbottles.in",
+                email: "mail@starbottles.in",
                 address: "Thattaanpady, Panvel Hwy, Amrita Nagar, Edappally, Ernakulam, Kochi, Kerala 682034",
                 mapsHref: "https://maps.google.com/?q=Thattaanpady+Panvel+Hwy+Amrita+Nagar+Edappally+Ernakulam+Kochi+Kerala+682034",
               },

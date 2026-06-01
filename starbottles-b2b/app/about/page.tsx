@@ -3,7 +3,7 @@ import Footer from "@/components/Footer";
 import AboutPage from "@/components/AboutPage";
 import { fetchCompanyStats, fetchSiteSettings, fetchPageContent } from "@/lib/api";
 
-export const revalidate = 86400;
+export const revalidate = 0;
 
 export const metadata: Metadata = {
   title: "About Us — StarBottles | B2B Packaging Partner Since 1967",

@@ -3,7 +3,7 @@ import Footer from "@/components/Footer";
 import CatalogueList from "@/components/CatalogueList";
 import { fetchActiveCatalogues, fetchSiteSettings } from "@/lib/api";
 
-export const revalidate = 300;
+export const revalidate = 0;
 
 export const metadata: Metadata = {
   title: "Product Catalogues — StarBottles",
