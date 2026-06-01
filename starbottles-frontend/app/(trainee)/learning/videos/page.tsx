@@ -101,7 +101,7 @@ export default function VideosPage() {
           <Card
             key={video.id}
             className="group cursor-pointer hover:shadow-lg transition-all duration-300 border overflow-hidden"
-            onClick={() => setPlaying({ title: video.title, url: video.download_url })}
+            onClick={() => setPlaying({ title: video.title, url: video.video_url ?? video.download_url ?? "" })}
           >
             {/* Video thumbnail area */}
             <div

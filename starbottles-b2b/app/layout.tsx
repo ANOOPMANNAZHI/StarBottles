@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Poppins, Inter } from "next/font/google";
 import "./globals.css";
 import WhatsAppFloat from "@/components/WhatsAppFloat";
+import ChatWidget from "@/components/ChatWidget";
 import Navbar from "@/components/Navbar";
 import { fetchCategories, fetchProducts, fetchSiteSettings } from "@/lib/api";
 
@@ -62,6 +63,7 @@ export default async function RootLayout({
         <Navbar categories={categories} products={products} settings={settings} />
         {children}
         <WhatsAppFloat />
+        <ChatWidget />
       </body>
     </html>
   );

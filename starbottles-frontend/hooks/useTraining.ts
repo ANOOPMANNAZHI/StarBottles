@@ -6,7 +6,8 @@ export interface TrainingMaterialItem {
   title: string;
   type: "video" | "pdf" | "document";
   description: string | null;
-  download_url: string;
+  download_url: string | null;
+  video_url: string | null;
   created_at: string;
 }
 
@@ -43,10 +44,14 @@ export function useCompanyInfo() {
 export function useUploadMaterial() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (formData: FormData) =>
-      api.post("/v1/training/materials", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      }).then((r) => r.data.data),
+    mutationFn: (payload: FormData | { title: string; type: string; video_url: string; description?: string }) => {
+      if (payload instanceof FormData) {
+        return api.post("/v1/training/materials", payload, {
+          headers: { "Content-Type": "multipart/form-data" },
+        }).then((r) => r.data.data);
+      }
+      return api.post("/v1/training/materials", payload).then((r) => r.data.data);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["training-materials"] });
     },

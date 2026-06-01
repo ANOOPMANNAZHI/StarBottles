@@ -26,13 +26,14 @@ class TrainingController extends BaseApiController
                 'title'        => $material->title,
                 'type'         => $material->type,
                 'description'  => $material->description,
-                'download_url' => Storage::disk('public')->url($material->file_path),
+                'download_url' => $material->file_path
+                    ? Storage::disk('public')->url($material->file_path)
+                    : null,
+                'video_url'    => $material->video_url,
                 'created_at'   => $material->created_at->toIso8601String(),
             ];
 
-            if (isset($grouped[$material->type . 's'])) {
-                $grouped[$material->type . 's'][] = $item;
-            } elseif ($material->type === 'video') {
+            if ($material->type === 'video') {
                 $grouped['videos'][] = $item;
             } elseif ($material->type === 'pdf') {
                 $grouped['pdfs'][] = $item;
@@ -46,20 +47,37 @@ class TrainingController extends BaseApiController
 
     public function uploadMaterial(Request $request): JsonResponse
     {
+        $isVideo = $request->input('type') === 'video';
+
         $data = $request->validate([
             'title'       => 'required|string|max:255',
             'type'        => 'required|in:video,pdf,document',
-            'file'        => 'required|file|max:102400',
+            'file'        => $isVideo ? 'sometimes|file|max:102400' : 'required|file|max:102400',
+            'video_url'   => $isVideo ? ['nullable', 'string', 'max:1000', 'regex:/^https?:\/\/.+/'] : 'prohibited',
             'description' => 'nullable|string',
         ]);
 
-        $file = $request->file('file');
-        $path = Storage::disk('public')->putFile('training/' . $data['type'], $file);
+        if ($isVideo && empty($data['file']) && empty($data['video_url'])) {
+            return response()->json([
+                'message' => 'Either a video file or a video URL is required.',
+                'errors'  => ['file' => ['Provide a file or a YouTube/video URL.']],
+            ], 422);
+        }
+
+        $filePath = null;
+        $videoUrl = null;
+
+        if ($request->hasFile('file')) {
+            $filePath = Storage::disk('public')->putFile('training/' . $data['type'], $request->file('file'));
+        } else {
+            $videoUrl = $data['video_url'];
+        }
 
         $material = TrainingMaterial::create([
             'title'       => $data['title'],
             'type'        => $data['type'],
-            'file_path'   => $path,
+            'file_path'   => $filePath,
+            'video_url'   => $videoUrl,
             'description' => $data['description'] ?? null,
             'uploaded_by' => $request->user()->id,
             'is_active'   => true,
@@ -70,7 +88,10 @@ class TrainingController extends BaseApiController
             'title'        => $material->title,
             'type'         => $material->type,
             'description'  => $material->description,
-            'download_url' => Storage::disk('public')->url($material->file_path),
+            'download_url' => $material->file_path
+                ? Storage::disk('public')->url($material->file_path)
+                : null,
+            'video_url'    => $material->video_url,
             'created_at'   => $material->created_at->toIso8601String(),
         ], 'Material uploaded', 201);
     }

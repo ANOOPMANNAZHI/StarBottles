@@ -141,7 +141,7 @@ export default function DownloadsPage() {
                       size="sm"
                       className="gap-1.5 shadow-sm text-xs font-semibold h-8"
                     >
-                      <a href={file.download_url} target="_blank" rel="noopener noreferrer">
+                      <a href={file.download_url ?? undefined} target="_blank" rel="noopener noreferrer">
                         <Download size={13} /> Download
                       </a>
                     </Button>

@@ -10,6 +10,7 @@ class TrainingMaterial extends Model
         'title',
         'type',
         'file_path',
+        'video_url',
         'description',
         'uploaded_by',
         'is_active',

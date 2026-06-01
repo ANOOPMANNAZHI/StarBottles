@@ -25,7 +25,7 @@ import {
 import {
   ChevronDown, Trash2, Plus, Upload, BarChart2, Users,
   Building2, FileText, Video, ClipboardCheck,
-  GripVertical, FileUp, Loader2, Eye,
+  GripVertical, FileUp, Loader2, Eye, Link2,
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -250,6 +250,8 @@ function MaterialsTab({ type }: { type: "pdf" | "document" | "video" }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [videoSource, setVideoSource] = useState<"file" | "url">("file");
+  const [videoUrl, setVideoUrl] = useState("");
 
   const items: TrainingMaterialItem[] =
     type === "pdf" ? (data?.pdfs ?? []) : type === "video" ? (data?.videos ?? []) : (data?.documents ?? []);
@@ -257,6 +259,12 @@ function MaterialsTab({ type }: { type: "pdf" | "document" | "video" }) {
   const typeLabel = type === "pdf" ? "PDF Document" : type === "video" ? "Video" : "Document";
   const typeIcon = type === "video" ? Video : FileText;
   const TypeIcon = typeIcon;
+
+  const resetForm = () => {
+    setTitle("");
+    setDescription("");
+    setVideoUrl("");
+  };
 
   const onDrop = useCallback(
     async (files: File[]) => {
@@ -273,8 +281,7 @@ function MaterialsTab({ type }: { type: "pdf" | "document" | "video" }) {
         if (description.trim()) fd.append("description", description.trim());
         await uploadMaterial.mutateAsync(fd);
         toast.success(`${typeLabel} uploaded successfully`);
-        setTitle("");
-        setDescription("");
+        resetForm();
       } catch {
         toast.error("Upload failed");
       } finally {
@@ -282,6 +289,39 @@ function MaterialsTab({ type }: { type: "pdf" | "document" | "video" }) {
       }
     },
     [title, description, type, uploadMaterial, typeLabel]
+  );
+
+  const handleUrlSubmit = useCallback(
+    async () => {
+      if (!title.trim()) {
+        toast.error("Please enter a title");
+        return;
+      }
+      if (!videoUrl.trim()) {
+        toast.error("Please enter a video URL");
+        return;
+      }
+      setUploading(true);
+      try {
+        await uploadMaterial.mutateAsync({
+          title: title.trim(),
+          type,
+          video_url: videoUrl.trim(),
+          ...(description.trim() ? { description: description.trim() } : {}),
+        });
+        toast.success("Video link added successfully");
+        resetForm();
+      } catch (err: any) {
+        const errors = err?.response?.data?.errors;
+        const msg = errors
+          ? Object.values(errors as Record<string, string[]>).flat().join(" ")
+          : (err?.response?.data?.message ?? "Failed to save video link");
+        toast.error(msg);
+      } finally {
+        setUploading(false);
+      }
+    },
+    [title, description, type, videoUrl, uploadMaterial]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, multiple: false });
@@ -316,44 +356,108 @@ function MaterialsTab({ type }: { type: "pdf" | "document" | "video" }) {
             />
           </div>
 
-          <div
-            {...getRootProps()}
-            className={cn(
-              "border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all duration-200",
-              isDragActive
-                ? "border-accent bg-accent/5 scale-[1.01]"
-                : "border-border/60 hover:border-accent/40 hover:bg-muted/20"
-            )}
-          >
-            <input {...getInputProps()} />
-            <div className="flex flex-col items-center gap-2">
-              {uploading ? (
-                <>
-                  <Loader2 size={28} className="text-accent animate-spin" />
-                  <p className="text-sm font-medium text-foreground">Uploading...</p>
-                </>
-              ) : isDragActive ? (
-                <>
-                  <Upload size={28} className="text-accent" />
-                  <p className="text-sm font-medium text-accent">Drop the file here</p>
-                </>
-              ) : (
-                <>
-                  <div className="w-12 h-12 rounded-full bg-muted/60 flex items-center justify-center">
-                    <Upload size={20} className="text-muted-foreground" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-foreground">
-                      Drag & drop or <span className="text-accent font-semibold">browse</span>
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {type === "video" ? "MP4, WebM, or video URL" : "PDF, DOC, DOCX up to 10MB"}
-                    </p>
-                  </div>
-                </>
-              )}
+          {/* Video source toggle — only for video tab */}
+          {type === "video" && (
+            <div className="flex items-center gap-1 p-1 rounded-lg bg-muted/40 border border-border/40 w-fit">
+              <button
+                type="button"
+                onClick={() => setVideoSource("file")}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-150",
+                  videoSource === "file"
+                    ? "bg-background shadow-sm text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Upload size={13} />
+                Upload File
+              </button>
+              <button
+                type="button"
+                onClick={() => setVideoSource("url")}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-150",
+                  videoSource === "url"
+                    ? "bg-background shadow-sm text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Link2 size={13} />
+                YouTube / URL
+              </button>
             </div>
-          </div>
+          )}
+
+          {/* File dropzone */}
+          {(type !== "video" || videoSource === "file") && (
+            <div
+              {...getRootProps()}
+              className={cn(
+                "border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all duration-200",
+                isDragActive
+                  ? "border-accent bg-accent/5 scale-[1.01]"
+                  : "border-border/60 hover:border-accent/40 hover:bg-muted/20"
+              )}
+            >
+              <input {...getInputProps()} />
+              <div className="flex flex-col items-center gap-2">
+                {uploading ? (
+                  <>
+                    <Loader2 size={28} className="text-accent animate-spin" />
+                    <p className="text-sm font-medium text-foreground">Uploading...</p>
+                  </>
+                ) : isDragActive ? (
+                  <>
+                    <Upload size={28} className="text-accent" />
+                    <p className="text-sm font-medium text-accent">Drop the file here</p>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-12 h-12 rounded-full bg-muted/60 flex items-center justify-center">
+                      <Upload size={20} className="text-muted-foreground" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-foreground">
+                        Drag & drop or <span className="text-accent font-semibold">browse</span>
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {type === "video" ? "MP4, WebM up to 100MB" : "PDF, DOC, DOCX up to 100MB"}
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* YouTube / URL input */}
+          {type === "video" && videoSource === "url" && (
+            <div className="space-y-3">
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Link2 size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="YouTube, Cloudflare Stream, or direct video URL..."
+                    value={videoUrl}
+                    onChange={(e) => setVideoUrl(e.target.value)}
+                    className="bg-background text-sm pl-9"
+                  />
+                </div>
+                <Button
+                  size="sm"
+                  onClick={handleUrlSubmit}
+                  disabled={uploading || !title.trim() || !videoUrl.trim()}
+                  className="shrink-0 gap-1.5"
+                >
+                  {uploading ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
+                  Add Video
+                </Button>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Supports YouTube, Vimeo, Cloudflare Stream, and direct MP4/HLS links.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -386,9 +490,13 @@ function MaterialsTab({ type }: { type: "pdf" | "document" | "video" }) {
                     "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
                     type === "video" ? "bg-rose-50" : type === "pdf" ? "bg-red-50" : "bg-blue-50"
                   )}>
-                    <TypeIcon size={18} className={
-                      type === "video" ? "text-rose-500" : type === "pdf" ? "text-red-500" : "text-blue-500"
-                    } />
+                    {type === "video" && item.video_url ? (
+                      <Link2 size={18} className="text-rose-500" />
+                    ) : (
+                      <TypeIcon size={18} className={
+                        type === "video" ? "text-rose-500" : type === "pdf" ? "text-red-500" : "text-blue-500"
+                      } />
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm truncate">{item.title}</p>
@@ -401,9 +509,16 @@ function MaterialsTab({ type }: { type: "pdf" | "document" | "video" }) {
                       </span>
                     </div>
                   </div>
-                  <Badge variant="outline" className="text-[10px] font-semibold uppercase tracking-wide shrink-0 hidden sm:inline-flex">
-                    {item.type}
-                  </Badge>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {type === "video" && item.video_url && (
+                      <Badge variant="secondary" className="text-[10px] font-semibold tracking-wide hidden sm:inline-flex">
+                        External
+                      </Badge>
+                    )}
+                    <Badge variant="outline" className="text-[10px] font-semibold uppercase tracking-wide hidden sm:inline-flex">
+                      {item.type}
+                    </Badge>
+                  </div>
                   <Button
                     variant="ghost"
                     size="icon"
