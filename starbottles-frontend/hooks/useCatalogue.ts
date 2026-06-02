@@ -41,7 +41,7 @@ export function useUploadCatalogue() {
     mutationFn: (formData: FormData) =>
       api
         .post("/v1/catalogues", formData, {
-          headers: { "Content-Type": "multipart/form-data" },
+          headers: { "Content-Type": undefined },
         })
         .then((r) => r.data.data as CatalogueItem),
     onSuccess: () => {

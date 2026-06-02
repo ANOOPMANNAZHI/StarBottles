@@ -572,13 +572,14 @@ export default function ProductsPageClient({ initialProducts, whatsapp = "918086
   const [loadingMore, setLoadingMore] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
-  // Sync category filter with ?category= URL param whenever it changes
+  // Sync category/search filter with URL params whenever they change
   const searchParams = useSearchParams();
   useEffect(() => {
     const cat = searchParams.get("category");
+    const q = searchParams.get("q");
     setFilters((f) => ({
       ...defaultFilters(),
-      search: f.search, // preserve any active search text
+      search: q ?? f.search,
       categories: cat ? new Set([cat]) : new Set(),
     }));
     setVisibleCount(PAGE_SIZE);
@@ -601,20 +602,21 @@ export default function ProductsPageClient({ initialProducts, whatsapp = "918086
   const filtered = useMemo(() => {
     return initialProducts.filter((p) => {
       if (filters.search) {
-        const q = filters.search.toLowerCase();
-        const inSpecs = p.specs.some(
-          (s) => (s.label ?? "").toLowerCase().includes(q) || (s.value ?? "").toLowerCase().includes(q)
-        );
-        const inFeatures = p.features.some((f) => (f ?? "").toLowerCase().includes(q));
-        const inApps = p.applications.some((a) => (a ?? "").toLowerCase().includes(q));
-        const matchSearch =
-          (p.name ?? "").toLowerCase().includes(q) ||
-          (p.item_code ?? "").toLowerCase().includes(q) ||
-          (p.description ?? "").toLowerCase().includes(q) ||
-          (p.material ?? "").toLowerCase().includes(q) ||
-          (p.category ?? "").toLowerCase().includes(q) ||
-          inSpecs || inFeatures || inApps;
-        if (!matchSearch) return false;
+        const normalized = filters.search.toLowerCase().trim().replace(/(\d+)\s*(ml|g|l|kg|oz)\b/g, "$1 $2");
+        const words = normalized.split(/\s+/).filter(Boolean);
+        const allWordsMatch = words.every((word) => {
+          return (
+            (p.name ?? "").toLowerCase().includes(word) ||
+            (p.item_code ?? "").toLowerCase().includes(word) ||
+            (p.description ?? "").toLowerCase().includes(word) ||
+            (p.material ?? "").toLowerCase().includes(word) ||
+            (p.category ?? "").toLowerCase().includes(word) ||
+            p.specs.some((s) => (s.label ?? "").toLowerCase().includes(word) || (s.value ?? "").toLowerCase().includes(word)) ||
+            p.features.some((f) => (f ?? "").toLowerCase().includes(word)) ||
+            p.applications.some((a) => (a ?? "").toLowerCase().includes(word))
+          );
+        });
+        if (!allWordsMatch) return false;
       }
 
       if (filters.categories.size > 0 && !filters.categories.has(p.category)) return false;

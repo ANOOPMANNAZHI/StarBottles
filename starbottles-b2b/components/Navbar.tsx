@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { productImage, type Product, type SiteSettings, type Category } from "@/lib/api";
 import CallbackModal from "@/components/CallbackModal";
@@ -71,7 +71,15 @@ function ProductsMegaMenu({ onClose, products, categories }: { onClose: () => vo
   const [search, setSearch] = useState("");
 
   const filteredCats = search.trim()
-    ? navCats.filter((c) => c.label.toLowerCase().includes(search.toLowerCase()))
+    ? navCats.filter((c) => {
+        const normalized = search.toLowerCase().trim().replace(/(\d+)\s*(ml|g|l|kg|oz)\b/g, "$1 $2");
+        const words = normalized.split(/\s+/).filter(Boolean);
+        return words.every(
+          (word) =>
+            c.label.toLowerCase().includes(word) ||
+            (c.tagline ?? "").toLowerCase().includes(word)
+        );
+      })
     : navCats;
 
   const activeCat = navCats.find((c) => c.label === activeCategory) ?? navCats[0];
@@ -129,7 +137,6 @@ function ProductsMegaMenu({ onClose, products, categories }: { onClose: () => vo
             <button
               key={cat.label}
               onMouseEnter={() => setActiveCategory(cat.label)}
-              onClick={() => { onClose(); }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 text-left rounded-xl transition-all duration-200 group ${
                 activeCategory === cat.label
                   ? "bg-white shadow-[0_2px_12px_rgba(14,18,73,0.08)] text-brand-dark"
@@ -465,6 +472,7 @@ export default function Navbar({ products = [], settings, categories }: { produc
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [callbackOpen, setCallbackOpen] = useState(false);
+  const [mobileSearch, setMobileSearch] = useState("");
   const [activeDropdown, setActiveDropdown] = useState<DropdownType>(null);
   const [mobileProductsOpen, setMobileProductsOpen] = useState(false);
   const [mobileCategoriesOpen, setMobileCategoriesOpen] = useState(false);
@@ -472,6 +480,7 @@ export default function Navbar({ products = [], settings, categories }: { produc
   const [phone, setPhone] = useState(settings?.contact_phone || FALLBACK_PHONE);
   const [phoneRaw, setPhoneRaw] = useState(settings?.contact_phone_raw || FALLBACK_PHONE_RAW);
   const pathname = usePathname();
+  const router = useRouter();
   const dropdownTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Fallback: fetch settings client-side only if not provided via props
@@ -501,6 +510,7 @@ export default function Navbar({ products = [], settings, categories }: { produc
     setMobileProductsOpen(false);
     setMobileCategoriesOpen(false);
     setMobileCategoryOpen(null);
+    setMobileSearch("");
   }, [pathname]);
 
   const openDropdown = (type: DropdownType) => {
@@ -678,7 +688,40 @@ export default function Navbar({ products = [], settings, categories }: { produc
             transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
             className="md:hidden bg-white border-t border-brand/[0.06] overflow-hidden shadow-[0_20px_40px_rgba(14,18,73,0.1)]"
           >
-            <div className="max-w-7xl mx-auto px-6 py-5 space-y-1">
+            <div className="max-w-7xl mx-auto px-6 py-5 space-y-1 max-h-[calc(100svh-70px)] overflow-y-auto">
+
+              {/* Search */}
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const q = mobileSearch.trim().replace(/(\d+)\s*(ml|g|l|kg|oz)\b/gi, "$1 $2");
+                  if (!q) return;
+                  setMenuOpen(false);
+                  router.push(`/products?q=${encodeURIComponent(q)}`);
+                }}
+                className="relative mb-2"
+              >
+                <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z" />
+                </svg>
+                <input
+                  type="search"
+                  value={mobileSearch}
+                  onChange={(e) => setMobileSearch(e.target.value)}
+                  placeholder="Search products..."
+                  className="w-full pl-10 pr-10 py-3 font-inter text-sm text-gray-800 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-brand focus:ring-2 focus:ring-brand/10 focus:bg-white placeholder:text-gray-400 transition-all duration-200"
+                />
+                {mobileSearch && (
+                  <button
+                    type="submit"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center bg-brand rounded-lg text-white"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                )}
+              </form>
 
               {/* Home */}
               <Link href="/" onClick={() => setMenuOpen(false)} className={`block px-4 py-3 font-inter text-sm font-medium rounded-xl transition-all duration-200 ${pathname === "/" ? "text-brand-dark bg-brand-pale/60 font-semibold" : "text-gray-700 hover:text-brand-dark hover:bg-brand-pale/40"}`}>
@@ -725,7 +768,7 @@ export default function Navbar({ products = [], settings, categories }: { produc
                             <AnimatePresence>
                               {isOpen && catProds.length > 0 && (
                                 <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.2 }} className="ml-8 overflow-hidden">
-                                  {catProds.map((prod) => (
+                                  {catProds.slice(0, 5).map((prod) => (
                                     <Link
                                       key={prod.slug}
                                       href={`/products/${prod.slug}`}

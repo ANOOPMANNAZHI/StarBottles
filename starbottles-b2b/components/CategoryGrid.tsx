@@ -14,7 +14,7 @@ function CategoryImage({ slug, staticSrc, alt }: { slug?: string; staticSrc?: st
 
   if (failed || !src) {
     return staticSrc && !failed ? (
-      <Image src={staticSrc} alt={alt} fill className="object-cover" sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 17vw" />
+      <Image src={staticSrc} alt={alt} fill className="object-cover" sizes="(max-width: 640px) 100vw, (max-width: 1024px) 33vw, 17vw" />
     ) : (
       <div className="absolute inset-0 flex items-center justify-center bg-brand-pale/40">
         <svg className="w-10 h-10 text-brand/20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -30,7 +30,7 @@ function CategoryImage({ slug, staticSrc, alt }: { slug?: string; staticSrc?: st
       alt={alt}
       fill
       className="object-cover"
-      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 17vw"
+      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 33vw, 17vw"
       onError={() => {
         if (slug && src !== (staticSrc ?? "")) {
           // R2 failed — try static fallback
@@ -322,7 +322,7 @@ export default function CategoryGrid({ categories: apiCategories }: { categories
         </motion.div>
 
         {/* Category grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 lg:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-5 lg:gap-6">
           {displayCategories.map((cat, i) => (
             <CategoryCard key={cat.label} cat={cat} index={i} />
           ))}

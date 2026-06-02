@@ -14,7 +14,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 export default function ContactMethodModal({ productName, productUrl, isOpen, onClose }: Props) {
   const [step, setStep] = useState<"select" | "phone" | "email">("select");
-  const [form, setForm] = useState({ name: "", phone: "", email: "", message: "" });
+  const [form, setForm] = useState({ name: "", phone: "", email: "", business_type: "", message: "" });
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -39,7 +39,7 @@ export default function ContactMethodModal({ productName, productUrl, isOpen, on
       const t = setTimeout(() => {
         setStep("select");
         setSubmitted(false);
-        setForm({ name: "", phone: "", email: "", message: "" });
+        setForm({ name: "", phone: "", email: "", business_type: "", message: "" });
       }, 300);
       return () => clearTimeout(t);
     }
@@ -295,61 +295,82 @@ export default function ContactMethodModal({ productName, productUrl, isOpen, on
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="font-inter text-[10px] font-bold text-gray-600 mb-1.5 block uppercase tracking-wider">
-                          Name <span className="text-red-400">*</span>
-                        </label>
-                        <input
-                          required
-                          value={form.name}
-                          onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-                          placeholder="Your name"
-                          className="w-full border border-gray-200/80 bg-gray-50/50 rounded-xl px-3.5 py-3 font-inter text-sm focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/10 focus:bg-white transition-all duration-300"
-                        />
-                      </div>
-                      <div>
-                        <label className="font-inter text-[10px] font-bold text-gray-600 mb-1.5 block uppercase tracking-wider">
-                          Phone <span className="text-red-400">*</span>
+                          Mobile Number <span className="text-red-400">*</span>
                         </label>
                         <input
                           required
                           type="tel"
                           value={form.phone}
                           onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))}
-                          placeholder="+91 98765..."
+                          placeholder="e.g. 9876543210"
+                          className="w-full border border-gray-200/80 bg-gray-50/50 rounded-xl px-3.5 py-3 font-inter text-sm focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/10 focus:bg-white transition-all duration-300"
+                        />
+                      </div>
+                      <div>
+                        <label className="font-inter text-[10px] font-bold text-gray-600 mb-1.5 block uppercase tracking-wider">
+                          Name <span className="text-gray-400 font-normal normal-case">(optional)</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={form.name}
+                          onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+                          placeholder="Your full name"
+                          className="w-full border border-gray-200/80 bg-gray-50/50 rounded-xl px-3.5 py-3 font-inter text-sm focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/10 focus:bg-white transition-all duration-300"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="font-inter text-[10px] font-bold text-gray-600 mb-1.5 block uppercase tracking-wider">
+                          Email <span className="text-gray-400 font-normal normal-case">(optional)</span>
+                        </label>
+                        <input
+                          type="email"
+                          value={form.email}
+                          onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
+                          placeholder="you@company.com"
+                          className="w-full border border-gray-200/80 bg-gray-50/50 rounded-xl px-3.5 py-3 font-inter text-sm focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/10 focus:bg-white transition-all duration-300"
+                        />
+                      </div>
+                      <div>
+                        <label className="font-inter text-[10px] font-bold text-gray-600 mb-1.5 block uppercase tracking-wider">
+                          Business Type <span className="text-gray-400 font-normal normal-case">(optional)</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={form.business_type}
+                          onChange={(e) => setForm((p) => ({ ...p, business_type: e.target.value }))}
+                          placeholder="e.g. Retailer, Manufacturer"
                           className="w-full border border-gray-200/80 bg-gray-50/50 rounded-xl px-3.5 py-3 font-inter text-sm focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/10 focus:bg-white transition-all duration-300"
                         />
                       </div>
                     </div>
                     <div>
                       <label className="font-inter text-[10px] font-bold text-gray-600 mb-1.5 block uppercase tracking-wider">
-                        Email <span className="text-red-400">*</span>
-                      </label>
-                      <input
-                        required
-                        type="email"
-                        value={form.email}
-                        onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
-                        placeholder="you@company.com"
-                        className="w-full border border-gray-200/80 bg-gray-50/50 rounded-xl px-3.5 py-3 font-inter text-sm focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/10 focus:bg-white transition-all duration-300"
-                      />
-                    </div>
-                    <div>
-                      <label className="font-inter text-[10px] font-bold text-gray-600 mb-1.5 block uppercase tracking-wider">
-                        Message
+                        Message <span className="text-gray-400 font-normal normal-case">(optional)</span>
                       </label>
                       <textarea
                         rows={3}
                         value={form.message}
                         onChange={(e) => setForm((p) => ({ ...p, message: e.target.value }))}
-                        placeholder="Tell us your requirements..."
+                        placeholder="Any specific requirements or questions..."
                         className="w-full border border-gray-200/80 bg-gray-50/50 rounded-xl px-3.5 py-3 font-inter text-sm focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/10 focus:bg-white transition-all duration-300 resize-none"
                       />
                     </div>
                     <button
                       type="submit"
                       disabled={loading}
-                      className="w-full bg-brand hover:bg-brand-light disabled:opacity-60 text-white font-poppins font-semibold py-4 rounded-2xl transition-all duration-300 shadow-[0_4px_20px_rgba(27,33,120,0.3)] hover:shadow-[0_8px_30px_rgba(27,33,120,0.4)]"
+                      className="w-full bg-brand hover:bg-brand-light disabled:opacity-60 text-white font-poppins font-semibold py-4 rounded-2xl transition-all duration-300 shadow-[0_4px_20px_rgba(27,33,120,0.3)] hover:shadow-[0_8px_30px_rgba(27,33,120,0.4)] flex items-center justify-center gap-2"
                     >
-                      {loading ? "Sending..." : "Send Inquiry"}
+                      {loading ? (
+                        <>
+                          <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                          </svg>
+                          Sending...
+                        </>
+                      ) : "Send Inquiry"}
                     </button>
                   </form>
                 )}
