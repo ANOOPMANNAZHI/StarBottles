@@ -599,26 +599,6 @@ export default function Navbar({ products = [], settings, categories }: { produc
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center gap-5">
             <a
-              href="https://shop.starbottles.in/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`group flex items-center gap-2 font-inter text-[13px] font-medium transition-all duration-200 ${
-                solid ? "text-gray-600 hover:text-brand-dark" : "text-white/80 hover:text-white"
-              }`}
-            >
-              <span className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-200 ${
-                solid
-                  ? "bg-brand-pale/60 text-brand/60 group-hover:bg-brand-pale group-hover:text-brand"
-                  : "bg-white/10 text-white/60 group-hover:bg-white/20 group-hover:text-white"
-              }`}>
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                </svg>
-              </span>
-              <span className="hidden lg:inline">Shop</span>
-            </a>
-
-            <a
               href={`tel:${phoneRaw}`}
               className={`group flex items-center gap-2 font-inter text-sm font-medium transition-all duration-200 ${
                 solid ? "text-gray-500 hover:text-brand-dark" : "text-white/70 hover:text-white"
@@ -651,6 +631,24 @@ export default function Navbar({ products = [], settings, categories }: { produc
                 </svg>
               </span>
             </button>
+
+            <a
+              href="https://shop.starbottles.in/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="relative group overflow-hidden font-poppins font-semibold text-[13px] text-white px-6 py-2.5 rounded-xl transition-all duration-300
+                bg-gradient-to-r from-brand to-brand-dark
+                hover:shadow-[0_4px_20px_rgba(27,33,120,0.4),0_0_0_1px_rgba(27,33,120,0.1)]
+                shadow-[0_2px_12px_rgba(27,33,120,0.25)]"
+            >
+              <span className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-out bg-gradient-to-r from-transparent via-white/15 to-transparent skew-x-12" />
+              <span className="relative flex items-center gap-2">
+                Shop
+                <svg className="w-3.5 h-3.5 opacity-70 group-hover:translate-x-0.5 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
+              </span>
+            </a>
           </div>
 
           {/* Mobile hamburger */}

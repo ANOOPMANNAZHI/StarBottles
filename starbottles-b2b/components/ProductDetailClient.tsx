@@ -8,6 +8,21 @@ import Footer from "@/components/Footer";
 import ContactMethodModal from "@/components/ContactMethodModal";
 import { productImage, type Product } from "@/lib/api";
 
+const PLACEHOLDER = "/default.png";
+
+function ProductImage({ src, alt, ...props }: React.ComponentProps<typeof Image>) {
+  const [imgSrc, setImgSrc] = useState(src as string);
+  return (
+    <Image
+      {...props}
+      src={imgSrc}
+      alt={alt}
+      unoptimized={typeof imgSrc === "string" && imgSrc.startsWith("http")}
+      onError={() => setImgSrc(PLACEHOLDER)}
+    />
+  );
+}
+
 const tagColors: Record<string, string> = {
   "Best Seller": "bg-amber-50 text-amber-700 ring-1 ring-amber-200/60",
   Premium: "bg-violet-50 text-violet-700 ring-1 ring-violet-200/60",
@@ -140,7 +155,7 @@ export default function ProductDetailClient({
                           willChange: "transform",
                         }}
                       >
-                        <Image src={allImages[activeImg]} alt={product.name} fill className="object-cover" sizes="(max-width: 1024px) 100vw, 50vw" priority onError={(e) => { (e.target as HTMLImageElement).src = "/default.png"; }} />
+                        <ProductImage src={allImages[activeImg]} alt={product.name} fill className="object-cover" sizes="(max-width: 1024px) 100vw, 50vw" priority />
                       </div>
                     </motion.div>
                   ) : (
@@ -190,7 +205,7 @@ export default function ProductDetailClient({
                             : "ring-1 ring-gray-200/60 hover:ring-brand/30 hover:shadow-sm"
                         }`}
                       >
-                        <Image src={img} alt={`${product.name} ${i + 1}`} fill className="object-cover" sizes="10vw" onError={(e) => { (e.target as HTMLImageElement).src = "/default.png"; }} />
+                        <ProductImage src={img} alt={`${product.name} ${i + 1}`} fill className="object-cover" sizes="10vw" />
                       </button>
                     ))}
                   </div>
@@ -407,7 +422,7 @@ export default function ProductDetailClient({
                       style={{ background: "linear-gradient(145deg, #f7f8fc 0%, #eef0f7 100%)" }}
                     >
                       {p.image ? (
-                        <Image src={productImage(p.image)} alt={p.name} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="(max-width: 768px) 50vw, 25vw" onError={(e) => { (e.target as HTMLImageElement).src = "/default.png"; }} />
+                        <ProductImage src={productImage(p.image)} alt={p.name} fill className="object-cover group-hover:scale-105 transition-transform duration-500" sizes="(max-width: 768px) 50vw, 25vw" />
                       ) : (
                         <div className="absolute inset-0 flex items-center justify-center">
                           <svg className="w-8 h-8 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
