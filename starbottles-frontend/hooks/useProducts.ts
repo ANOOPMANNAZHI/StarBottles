@@ -45,6 +45,8 @@ export interface ProductDetail extends ProductListItem {
   total_height: string | null;
   box_quantity: string | null;
   label_area: string | null;
+  retail_price: number | null;
+  wholesale_price: number | null;
   image_url: string | null;
   images: (ProductImageSet | string)[];
   video_url: string | null;

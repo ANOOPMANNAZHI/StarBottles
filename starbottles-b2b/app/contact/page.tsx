@@ -9,6 +9,7 @@ export const metadata: Metadata = {
   title: "Contact Us — StarBottles | B2B Packaging Distributor, Thrissur Kerala",
   description:
     "Get in touch with StarBottles — call, WhatsApp, or email our team in Thrissur, Kerala. Fast response within 24 hours for B2B packaging inquiries.",
+  alternates: { canonical: "https://starbottles.in/contact" },
 };
 
 export default async function Contact() {

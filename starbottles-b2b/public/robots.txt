@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+
+# Block internal/API routes
+Disallow: /api/
+
+Sitemap: https://starbottles.in/sitemap.xml

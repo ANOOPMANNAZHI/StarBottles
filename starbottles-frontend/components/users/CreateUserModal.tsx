@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, UserPlus, Info, Briefcase, GraduationCap } from "lucide-react";
+import { Loader2, UserPlus, Info, Briefcase, GraduationCap, ShieldCheck } from "lucide-react";
 import { useCreateUser } from "@/hooks/useUsers";
 import ResetPasswordDialog from "./ResetPasswordDialog";
 
@@ -21,12 +21,18 @@ const schema = z.object({
   name:  z.string().min(1, "Name is required").max(255),
   email: z.string().email("Enter a valid email"),
   phone: z.string().min(1, "Phone is required").max(20),
-  role:  z.enum(["executive", "trainee"], { error: "Select a role" }),
+  role:  z.enum(["admin", "executive", "trainee"], { error: "Select a role" }),
 });
 
 type FormValues = z.infer<typeof schema>;
 
 const ROLES = [
+  {
+    value: "admin" as const,
+    label: "Admin",
+    description: "Full access to all platform settings",
+    Icon: ShieldCheck,
+  },
   {
     value: "executive" as const,
     label: "Executive",
@@ -153,7 +159,7 @@ export default function CreateUserModal({ open, onClose }: CreateUserModalProps)
               <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                 Role
               </Label>
-              <div className="grid grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-3 gap-2.5">
                 {ROLES.map(({ value, label, description, Icon }) => {
                   const active = selectedRole === value;
                   return (

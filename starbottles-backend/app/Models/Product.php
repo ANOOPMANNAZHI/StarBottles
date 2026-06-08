@@ -30,6 +30,8 @@ class Product extends Model
         'total_height',
         'box_quantity',
         'label_area',
+        'retail_price',
+        'wholesale_price',
         'is_active',
         'is_featured',
         'is_hidden',

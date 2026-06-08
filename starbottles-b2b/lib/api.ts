@@ -36,6 +36,8 @@ export type Product = {
   weight: string;
   total_height: string;
   label_area: string;
+  retail_price: number | null;
+  wholesale_price: number | null;
   moq: string;
   tag: string;
   featured: boolean;

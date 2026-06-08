@@ -17,7 +17,7 @@ class StoreUserRequest extends FormRequest
             'name'     => ['required', 'string', 'max:255'],
             'email'    => ['required', 'email', 'unique:users,email'],
             'phone'    => ['required', 'string', 'max:20'],
-            'role'     => ['required', 'in:executive,trainee'],
+            'role'     => ['required', 'in:admin,executive,trainee'],
             'password' => ['sometimes', 'string', 'min:8', 'regex:/[A-Z]/', 'regex:/[0-9]/'],
         ];
     }
@@ -25,7 +25,7 @@ class StoreUserRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'role.in' => 'Role must be executive or trainee.',
+            'role.in' => 'Role must be admin, executive, or trainee.',
         ];
     }
 }

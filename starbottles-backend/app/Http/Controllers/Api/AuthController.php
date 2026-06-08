@@ -52,8 +52,6 @@ class AuthController extends BaseApiController
 
         RateLimiter::clear($key);
 
-        $user->tokens()->delete();
-
         $token = $user->createToken('auth-token')->plainTextToken;
 
         $user->update(['last_login_at' => now()]);

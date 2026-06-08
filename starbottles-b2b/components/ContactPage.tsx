@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { gaEvent } from "@/lib/analytics";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -108,7 +109,7 @@ export default function ContactPage() {
       id: "whatsapp",
       icon: WA_ICON,
       label: "WhatsApp",
-      value: waDisplay,
+      value: "Message Us",
       sub: "Fastest response - chat now",
       href: waLink,
       accentBg: "bg-green-50",
@@ -164,6 +165,7 @@ export default function ContactPage() {
         throw new Error(data.error ?? "Something went wrong.");
       }
       setSubmitted(true);
+      gaEvent("generate_lead", { form: "contact_callback" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to send. Please try again.");
     } finally {

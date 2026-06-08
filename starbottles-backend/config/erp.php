@@ -32,7 +32,9 @@ return [
         'color'          => 'color',
         'weight'         => 'weight',
         'total_height'   => 'total_height',
-        'box_quantity'   => 'box_quantity',
-        'label_area'     => 'label_area',
+        'box_quantity'     => 'box_quantity',
+        'label_area'       => 'label_area',
+        'retail_price'     => 'retail_price',
+        'wholesale_price'  => 'wholesale_price',
     ],
 ];

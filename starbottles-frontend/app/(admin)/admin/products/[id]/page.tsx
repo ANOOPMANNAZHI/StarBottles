@@ -536,6 +536,23 @@ export default function AdminProductDetailPage() {
             </dl>
           </div>
 
+          {/* Pricing */}
+          <div className="rounded-xl border border-border bg-card shadow-sm">
+            <div className="px-5 py-3 border-b border-border">
+              <h3 className="text-sm font-semibold">Pricing</h3>
+            </div>
+            <dl className="px-5 py-1">
+              <InfoRow
+                label="Wholesale Price"
+                value={product.wholesale_price != null ? product.wholesale_price.toFixed(2) : null}
+              />
+              <InfoRow
+                label="Retail Price"
+                value={product.retail_price != null ? product.retail_price.toFixed(2) : null}
+              />
+            </dl>
+          </div>
+
           {/* Description */}
           <DescriptionEditor
             productId={product.id}

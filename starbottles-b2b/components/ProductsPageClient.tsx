@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
@@ -9,6 +9,28 @@ import Footer from "@/components/Footer";
 import { productImage, type Product } from "@/lib/api";
 
 const PLACEHOLDER = "/default.png";
+
+// Track back/forward navigation for scroll-position restoration only.
+let _popstateOccurred = false;
+if (typeof window !== "undefined") {
+  window.addEventListener("popstate", () => { _popstateOccurred = true; });
+}
+
+// Build a /products URL that encodes all active filter/page/sort state so the
+// browser history entry always reflects exactly what the user is looking at.
+function buildProductsUrl(pathname: string, f: Filters, page: number, sort: string): string {
+  const p = new URLSearchParams();
+  if (f.search) p.set("q", f.search);
+  const cats = [...f.categories].join(",");
+  if (cats) p.set("cat", cats);
+  const mats = [...f.materials].join(",");
+  if (mats) p.set("mat", mats);
+  if (f.capacity) p.set("cap", f.capacity);
+  if (page > 1) p.set("p", String(page));
+  if (sort !== "default") p.set("sort", sort);
+  const qs = p.toString();
+  return `${pathname}${qs ? `?${qs}` : ""}`;
+}
 
 function ProductCardImage({ src, alt }: { src: string; alt: string }) {
   const [imgSrc, setImgSrc] = useState(src);
@@ -114,7 +136,7 @@ function CheckItem({
   count?: number;
 }) {
   return (
-    <label className="flex items-center gap-3 cursor-pointer group py-1.5" onClick={onChange}>
+    <label className="flex items-center gap-3 cursor-pointer group py-1.5">
       <input type="checkbox" checked={checked} onChange={onChange} className="sr-only" />
       <span
         className={`w-[18px] h-[18px] rounded-[5px] flex items-center justify-center border-[1.5px] flex-shrink-0 transition-all duration-200 ${
@@ -471,8 +493,70 @@ function ActiveFilters({
   );
 }
 
+// ─── Pagination ───────────────────────────────────────────────────────────────
+function Pagination({ currentPage, totalPages, onPageChange }: { currentPage: number; totalPages: number; onPageChange: (page: number) => void }) {
+  if (totalPages <= 1) return null;
+
+  const pages: (number | "...")[] = [];
+  if (totalPages <= 7) {
+    for (let i = 1; i <= totalPages; i++) pages.push(i);
+  } else {
+    pages.push(1);
+    if (currentPage > 3) pages.push("...");
+    const start = Math.max(2, currentPage - 1);
+    const end = Math.min(totalPages - 1, currentPage + 1);
+    for (let i = start; i <= end; i++) pages.push(i);
+    if (currentPage < totalPages - 2) pages.push("...");
+    pages.push(totalPages);
+  }
+
+  return (
+    <div className="flex items-center justify-center flex-wrap gap-1.5 mt-12">
+      <button
+        onClick={() => onPageChange(currentPage - 1)}
+        disabled={currentPage === 1}
+        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl font-inter text-sm font-semibold text-gray-600 bg-white ring-1 ring-gray-200 hover:ring-brand/30 hover:text-brand transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+        </svg>
+        Prev
+      </button>
+
+      {pages.map((page, i) =>
+        page === "..." ? (
+          <span key={`ellipsis-${i}`} className="w-10 h-10 flex items-center justify-center font-inter text-sm text-gray-400">…</span>
+        ) : (
+          <button
+            key={page}
+            onClick={() => onPageChange(page)}
+            className={`w-10 h-10 rounded-xl font-inter text-sm font-semibold transition-all duration-200 ${
+              currentPage === page
+                ? "bg-brand text-white shadow-lg shadow-brand/25"
+                : "bg-white text-gray-700 ring-1 ring-gray-200 hover:ring-brand/30 hover:text-brand"
+            }`}
+          >
+            {page}
+          </button>
+        )
+      )}
+
+      <button
+        onClick={() => onPageChange(currentPage + 1)}
+        disabled={currentPage === totalPages}
+        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl font-inter text-sm font-semibold text-gray-600 bg-white ring-1 ring-gray-200 hover:ring-brand/30 hover:text-brand transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        Next
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
 // ─── Product card ─────────────────────────────────────────────────────────────
-function ProductCard({ product, index }: { product: Product; index: number }) {
+function ProductCard({ product, index, onBeforeNavigate }: { product: Product; index: number; onBeforeNavigate?: () => void }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 24 }}
@@ -481,6 +565,7 @@ function ProductCard({ product, index }: { product: Product; index: number }) {
     >
       <Link
         href={`/products/${product.slug}`}
+        onClick={onBeforeNavigate}
         className="group flex flex-col bg-white rounded-2xl overflow-hidden h-full transition-all duration-300 ring-1 ring-gray-100 hover:ring-brand/25 hover:shadow-xl hover:shadow-brand/[0.06]"
       >
         {/* Image */}
@@ -565,39 +650,83 @@ export default function ProductsPageClient({ initialProducts, whatsapp = "918086
   const allCategories = useMemo(() => Array.from(new Set(initialProducts.map((p) => p.category))).filter(Boolean), [initialProducts]);
   const allMaterials = useMemo(() => Array.from(new Set(initialProducts.flatMap((p) => parseMaterials(p.material)))).sort(), [initialProducts]);
 
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
   const [filters, setFilters] = useState<Filters>(defaultFilters);
   const [sortBy, setSortBy] = useState<"default" | "name_asc" | "name_desc" | "featured">("default");
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const loadMoreRef = useRef<HTMLDivElement>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const gridRef = useRef<HTMLDivElement>(null);
+  const pendingScrollRef = useRef<number | null>(null);
+  // Prevent the URL→state effect from re-firing when WE pushed the URL update.
+  const ownUrlChangeRef = useRef(0);
+  // Refs that always hold the latest state so action callbacks can build the URL
+  // without stale closures (state updates are async, refs are synchronous).
+  const filtersRef = useRef<Filters>(filters);
+  const sortByRef = useRef(sortBy);
+  filtersRef.current = filters;
+  sortByRef.current = sortBy;
 
-  // Sync category/search filter with URL params whenever they change
-  const searchParams = useSearchParams();
+  // ── URL → state ──────────────────────────────────────────────────────────────
+  // Runs on mount and whenever the URL changes externally (browser back/forward,
+  // or an incoming link like ?category=X). Initialises all filter/page/sort state
+  // from the URL so that the browser's own history is the single source of truth.
   useEffect(() => {
-    const cat = searchParams.get("category");
-    const q = searchParams.get("q");
-    setFilters((f) => ({
-      ...defaultFilters(),
-      search: q ?? f.search,
-      categories: cat ? new Set([cat]) : new Set(),
-    }));
-    setVisibleCount(PAGE_SIZE);
+    if (ownUrlChangeRef.current > 0) {
+      ownUrlChangeRef.current--;
+      return;
+    }
+    const cat  = searchParams.get("cat") || searchParams.get("category") || "";
+    const mat  = searchParams.get("mat") || "";
+    const cap  = searchParams.get("cap") || "";
+    const q    = searchParams.get("q")   || "";
+    const p    = Math.max(1, parseInt(searchParams.get("p") ?? "1") || 1);
+    const sort = searchParams.get("sort") ?? "default";
+    setFilters({
+      search:     q,
+      categories: new Set(cat ? cat.split(",").filter(Boolean) : []),
+      materials:  new Set(mat ? mat.split(",").filter(Boolean) : []),
+      capacity:   cap,
+    });
+    setCurrentPage(p);
+    setSortBy(["default","name_asc","name_desc","featured"].includes(sort) ? sort as typeof sortBy : "default");
   }, [searchParams]);
+
+  // ── Scroll restoration (back-navigation only) ─────────────────────────────
+  useEffect(() => {
+    const wasPopstate = _popstateOccurred;
+    _popstateOccurred = false;
+    if (!wasPopstate) { sessionStorage.removeItem("b2b_scroll"); return; }
+    const raw = sessionStorage.getItem("b2b_scroll");
+    if (!raw) return;
+    sessionStorage.removeItem("b2b_scroll");
+    const y = parseInt(raw);
+    if (!isNaN(y)) pendingScrollRef.current = y;
+  }, []);
+
+  // Wrapper for all user-initiated filter changes — resets to page 1 and updates URL.
+  const applyFilters = useCallback((updater: Filters | ((f: Filters) => Filters)) => {
+    const nextFilters = typeof updater === "function" ? updater(filtersRef.current) : updater;
+    setFilters(nextFilters);
+    setCurrentPage(1);
+    const newUrl = buildProductsUrl(pathname, nextFilters, 1, sortByRef.current);
+    ownUrlChangeRef.current++;
+    router.replace(newUrl, { scroll: false });
+  }, [pathname, router]);
 
   const resetFilters = useCallback(() => {
     setFilters(defaultFilters());
-    setVisibleCount(PAGE_SIZE);
+    setCurrentPage(1);
     setSortBy("default");
-  }, []);
+    ownUrlChangeRef.current++;
+    router.replace(pathname, { scroll: false });
+  }, [pathname, router]);
 
   const totalActiveFilters =
     filters.categories.size + filters.materials.size + (filters.capacity ? 1 : 0);
   const hasAnyFilter = !!filters.search || totalActiveFilters > 0;
-
-  useEffect(() => {
-    setVisibleCount(PAGE_SIZE);
-  }, [filters]);
 
   const filtered = useMemo(() => {
     return initialProducts.filter((p) => {
@@ -643,20 +772,31 @@ export default function ProductsPageClient({ initialProducts, whatsapp = "918086
     return filtered;
   }, [filtered, sortBy]);
 
-  const visibleProducts = sorted.slice(0, visibleCount);
-  const remaining = sorted.length - visibleCount;
-  const hasMore = remaining > 0;
+  const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
+  const pageStart = (currentPage - 1) * PAGE_SIZE;
+  const visibleProducts = sorted.slice(pageStart, pageStart + PAGE_SIZE);
 
-  const handleLoadMore = () => {
-    setLoadingMore(true);
-    setTimeout(() => {
-      setVisibleCount((c) => c + PAGE_SIZE);
-      setLoadingMore(false);
-      setTimeout(() => {
-        loadMoreRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-      }, 80);
-    }, 350);
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    const newUrl = buildProductsUrl(pathname, filtersRef.current, page, sortByRef.current);
+    ownUrlChangeRef.current++;
+    router.replace(newUrl, { scroll: false });
+    gridRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
+
+  // Scroll to saved position after products re-render from sessionStorage restoration
+  useEffect(() => {
+    if (pendingScrollRef.current === null) return;
+    const target = pendingScrollRef.current;
+    pendingScrollRef.current = null;
+    requestAnimationFrame(() => window.scrollTo({ top: target, behavior: "instant" }));
+  }, [visibleProducts]);
+
+  // Save scroll position before navigating to a product detail page so we can
+  // restore it when the user presses the browser back button.
+  const saveScrollState = useCallback(() => {
+    try { sessionStorage.setItem("b2b_scroll", String(Math.round(window.scrollY))); } catch {}
+  }, []);
 
   return (
     <main className="min-h-screen bg-[#f5f6fa]">
@@ -748,13 +888,13 @@ export default function ProductsPageClient({ initialProducts, whatsapp = "918086
             <input
               type="text"
               value={filters.search}
-              onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))}
+              onChange={(e) => applyFilters((f) => ({ ...f, search: e.target.value }))}
               placeholder="Search by name, material, application, or spec..."
               className="w-full pl-11 pr-10 py-2.5 border border-gray-200 rounded-xl font-inter text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/10 transition-all bg-gray-50/50 focus:bg-white"
             />
             {filters.search && (
               <button
-                onClick={() => setFilters((f) => ({ ...f, search: "" }))}
+                onClick={() => applyFilters((f) => ({ ...f, search: "" }))}
                 className="absolute right-3.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-md bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors"
               >
                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -765,11 +905,10 @@ export default function ProductsPageClient({ initialProducts, whatsapp = "918086
           </div>
 
           <span className="hidden sm:flex items-center gap-1.5 font-inter text-sm text-gray-400 shrink-0 whitespace-nowrap bg-gray-50 px-3 py-1.5 rounded-lg">
-            <span className="text-brand-dark font-bold">{Math.min(visibleCount, filtered.length)}</span>
-            <span className="text-gray-300">/</span>
             <span className="text-brand-dark font-bold">{filtered.length}</span>
+            <span className="text-gray-400 text-xs">product{filtered.length !== 1 ? "s" : ""}</span>
             {filtered.length !== initialProducts.length && (
-              <span className="text-gray-400 text-xs ml-0.5">(filtered)</span>
+              <span className="text-gray-400 text-xs">(filtered)</span>
             )}
           </span>
         </div>
@@ -784,7 +923,7 @@ export default function ProductsPageClient({ initialProducts, whatsapp = "918086
             <div className="bg-white rounded-2xl ring-1 ring-gray-100 p-6 shadow-sm">
               <Sidebar
                 filters={filters}
-                setFilters={setFilters}
+                setFilters={applyFilters}
                 totalActive={totalActiveFilters}
                 onReset={resetFilters}
                 allCategories={allCategories}
@@ -796,25 +935,17 @@ export default function ProductsPageClient({ initialProducts, whatsapp = "918086
 
           {/* Main content */}
           <div className="flex-1 min-w-0">
-            <ActiveFilters filters={filters} setFilters={setFilters} onReset={resetFilters} />
+            <ActiveFilters filters={filters} setFilters={applyFilters} onReset={resetFilters} />
 
             <div className="flex items-center justify-between mb-7">
               <p className="font-inter text-sm text-gray-500">
-                {hasAnyFilter ? (
+                {filtered.length === 0 ? null : (
                   <>
                     Showing{" "}
-                    <span className="text-brand-dark font-bold">{Math.min(visibleCount, filtered.length)}</span>
+                    <span className="text-brand-dark font-bold">{pageStart + 1}–{Math.min(pageStart + PAGE_SIZE, filtered.length)}</span>
                     {" "}of{" "}
                     <span className="text-brand-dark font-bold">{filtered.length}</span>
-                    {" "}result{filtered.length !== 1 ? "s" : ""}
-                  </>
-                ) : (
-                  <>
-                    Showing{" "}
-                    <span className="text-brand-dark font-bold">{Math.min(visibleCount, initialProducts.length)}</span>
-                    {" "}of{" "}
-                    <span className="text-brand-dark font-bold">{initialProducts.length}</span>
-                    {" "}products
+                    {" "}{hasAnyFilter ? `result${filtered.length !== 1 ? "s" : ""}` : "products"}
                   </>
                 )}
               </p>
@@ -829,7 +960,13 @@ export default function ProductsPageClient({ initialProducts, whatsapp = "918086
               )}
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+                onChange={(e) => {
+                  const newSort = e.target.value as typeof sortBy;
+                  setSortBy(newSort);
+                  const newUrl = buildProductsUrl(pathname, filtersRef.current, currentPage, newSort);
+                  ownUrlChangeRef.current++;
+                  router.replace(newUrl, { scroll: false });
+                }}
                 className="font-inter text-sm text-gray-700 border border-gray-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/10 cursor-pointer"
               >
                 <option value="default">Sort: Default</option>
@@ -841,6 +978,7 @@ export default function ProductsPageClient({ initialProducts, whatsapp = "918086
             </div>
 
             {/* Grid */}
+            <div ref={gridRef} />
             {filtered.length === 0 ? (
               <motion.div
                 initial={{ opacity: 0, scale: 0.98 }}
@@ -867,60 +1005,11 @@ export default function ProductsPageClient({ initialProducts, whatsapp = "918086
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
                   {visibleProducts.map((product, i) => (
-                    <ProductCard key={product.id} product={product} index={i} />
+                    <ProductCard key={product.id} product={product} index={i} onBeforeNavigate={saveScrollState} />
                   ))}
                 </div>
 
-                {/* ── Load More / End state ── */}
-                <div ref={loadMoreRef} className="mt-12">
-                  {hasMore ? (
-                    <div className="flex flex-col items-center gap-4">
-                      <div className="w-full max-w-xs bg-gray-100 rounded-full h-1 overflow-hidden">
-                        <motion.div
-                          className="h-full bg-gradient-to-r from-brand to-brand-light rounded-full"
-                          initial={{ width: 0 }}
-                          animate={{ width: `${(Math.min(visibleCount, filtered.length) / filtered.length) * 100}%` }}
-                          transition={{ duration: 0.5, ease: "easeOut" }}
-                        />
-                      </div>
-                      <p className="font-inter text-xs text-gray-400">
-                        {Math.min(visibleCount, filtered.length)} of {filtered.length} products
-                      </p>
-                      <button
-                        onClick={handleLoadMore}
-                        disabled={loadingMore}
-                        className="inline-flex items-center gap-2.5 font-poppins font-semibold text-sm text-brand-dark bg-white ring-1 ring-gray-200 hover:ring-brand/30 hover:shadow-lg hover:shadow-brand/[0.06] px-8 py-3.5 rounded-xl transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed"
-                      >
-                        {loadingMore ? (
-                          <>
-                            <svg className="w-4 h-4 animate-spin text-brand" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                            </svg>
-                            Loading...
-                          </>
-                        ) : (
-                          <>
-                            Load {Math.min(remaining, PAGE_SIZE)} more
-                            <span className="font-inter font-normal text-xs text-gray-400">
-                              ({remaining} remaining)
-                            </span>
-                            <svg className="w-4 h-4 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                            </svg>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  ) : filtered.length > PAGE_SIZE ? (
-                    <div className="flex flex-col items-center gap-2 py-4">
-                      <div className="w-full max-w-xs bg-gradient-to-r from-brand to-brand-light rounded-full h-1" />
-                      <p className="font-inter text-xs text-gray-400">
-                        All {filtered.length} products shown
-                      </p>
-                    </div>
-                  ) : null}
-                </div>
+                <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={handlePageChange} />
               </>
             )}
 
@@ -971,7 +1060,7 @@ export default function ProductsPageClient({ initialProducts, whatsapp = "918086
         open={mobileFiltersOpen}
         onClose={() => setMobileFiltersOpen(false)}
         filters={filters}
-        setFilters={setFilters}
+        setFilters={applyFilters}
         totalActive={totalActiveFilters}
         onReset={resetFilters}
         resultCount={filtered.length}

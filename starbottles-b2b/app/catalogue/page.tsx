@@ -9,6 +9,7 @@ export const metadata: Metadata = {
   title: "Product Catalogues — StarBottles",
   description:
     "Download StarBottles product catalogues. Browse our complete range of packaging solutions including PET bottles, glass jars, HDPE containers, and more.",
+  alternates: { canonical: "https://starbottles.in/catalogue" },
 };
 
 export default async function CataloguePage() {

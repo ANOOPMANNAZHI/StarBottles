@@ -9,6 +9,7 @@ export const metadata: Metadata = {
   title: "About Us — StarBottles | B2B Packaging Partner Since 1967",
   description:
     "StarBottles is one of Kerala's most trusted names in plastic and glass packaging. Founded in 1967 in Thrissur, Kerala — 2200+ clients, 1500+ SKUs, 18+ states served. ISO certified, BIS compliant.",
+  alternates: { canonical: "https://starbottles.in/about" },
 };
 
 export default async function About() {

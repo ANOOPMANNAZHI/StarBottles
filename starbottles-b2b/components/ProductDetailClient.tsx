@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import Footer from "@/components/Footer";
 import ContactMethodModal from "@/components/ContactMethodModal";
 import { productImage, type Product } from "@/lib/api";
+import { gaEvent } from "@/lib/analytics";
 
 const PLACEHOLDER = "/default.png";
 
@@ -50,6 +51,14 @@ export default function ProductDetailClient({
   const [copied, setCopied] = useState(false);
   const [isZooming, setIsZooming] = useState(false);
   const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
+
+  useEffect(() => {
+    gaEvent("view_item", {
+      item_id: String(product.id),
+      item_name: product.name,
+      item_category: product.category,
+    });
+  }, [product.id, product.name, product.category]);
 
   const handleImgMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -222,8 +231,7 @@ export default function ProductDetailClient({
                   <span className="w-5 h-[2px] bg-brand rounded-full" />
                   {product.category}
                 </span>
-                <h1 className="font-poppins font-extrabold text-3xl lg:text-[2.5rem] text-brand-darker mt-1 mb-4 leading-[1.15] tracking-tight">{product.name}</h1>
-                <p className="font-inter text-gray-500 text-base leading-[1.75] mb-6">{product.longDescription || product.description}</p>
+                <h1 className="font-poppins font-extrabold text-3xl lg:text-[2.5rem] text-brand-darker mt-1 mb-6 leading-[1.15] tracking-tight">{product.name}</h1>
 
                 {/* Inline product details table */}
                 {(() => {
@@ -291,7 +299,7 @@ export default function ProductDetailClient({
                 {/* CTA buttons */}
                 <div className="flex flex-col sm:flex-row gap-3 mb-7">
                   <button
-                    onClick={() => setModalOpen(true)}
+                    onClick={() => { setModalOpen(true); gaEvent("select_item", { item_id: String(product.id), item_name: product.name, engagement_type: "get_quote" }); }}
                     className="flex-1 inline-flex items-center justify-center gap-2.5 bg-brand hover:bg-brand-dark text-white font-poppins font-bold px-6 py-4 rounded-xl transition-all duration-300 shadow-lg shadow-brand/25 hover:shadow-xl hover:shadow-brand/30"
                   >
                     Get a Quote
@@ -349,6 +357,28 @@ export default function ProductDetailClient({
             </div>
           </div>
         </section>
+
+        {/* Product Description */}
+        {product.description && (
+          <section className="py-6 bg-white border-t border-gray-100">
+            <div className="max-w-7xl mx-auto px-6 lg:px-8">
+              <div className="flex items-center gap-2.5 mb-5">
+                <div className="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center">
+                  <svg className="w-4 h-4 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h12" />
+                  </svg>
+                </div>
+                <h2 className="font-poppins font-bold text-xl text-brand-darker">Product Description</h2>
+              </div>
+              <div className="max-w-3xl space-y-3">
+                <p className="font-inter text-gray-600 text-base leading-relaxed">{product.description}</p>
+                {product.longDescription && product.longDescription !== product.description && (
+                  <p className="font-inter text-gray-500 text-sm leading-relaxed">{product.longDescription}</p>
+                )}
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* Specs + Features */}
         {(() => {
